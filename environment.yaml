@@ -1,0 +1,15 @@
+# conda env create -f environment.yaml
+name: msdiff
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - black
+  - coverage
+  - numpy
+  - pre-commit
+  - pylint
+  - pytest
+  - tox
+  - pip:
+      - covdefaults

@@ -1,0 +1,25 @@
+[build-system]
+  requires = ["setuptools"]
+  build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+  testpaths = ["test"]
+  pythonpath = ["src"]
+
+
+[tool.mypy]
+  check_untyped_defs = true
+  disallow_any_generics = true
+  disallow_incomplete_defs = true
+  disallow_untyped_defs = true
+  warn_redundant_casts = true
+  warn_unreachable = true
+  warn_unused_ignores = true
+
+
+[tool.coverage.run]
+  plugins = ["covdefaults"]
+  source = ["./src"]
+
+[tool.coverage.report]
+  fail_under = 50
