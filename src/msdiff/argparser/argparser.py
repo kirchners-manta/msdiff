@@ -229,9 +229,24 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         "-f",
         "--file",
         type=is_file,
-        metavar="MSD file",
+        metavar="data_file",
         required=True,
         help="R|File containing the mean square displacement in csv format",
+    )
+    p.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        metavar="OUTPUT",
+        help="R|Output file name.",
+        default="msd_fit.pdf",
+    )
+    p.add_argument(
+        "-p",
+        "--plot",
+        action="store_true",
+        help="R|Plot the MSD and the linear fit.",
+        default=False,
     )
     p.add_argument(
         "-t",
