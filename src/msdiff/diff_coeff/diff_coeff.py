@@ -36,10 +36,10 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
 
     # print results
     print("  \033[1mMSDiff results\033[0m")
-    print(f"Diffusion coefficient: \t\t D = ({D:.2f} ± {D_std:.2f}) * 10^-12 m^2/s")
-    print(f"Hummer correction term: \t K =  {k_hummer:.2f}         * 10^-12 m^2/s")
-    print(f"Fit quality: \t\t\t R^2 = {r2:.4f}")
-    print(f"Linear region started at \t t = {data['time'][firststep]:.4f}")
+    print(f"Diffusion coefficient: \t\t D = ({D:.8f} ± {D_std:.8f}) * 10^-12 m^2/s")
+    print(f"Hummer correction term: \t K =  {k_hummer:.8f}         * 10^-12 m^2/s")
+    print(f"Fit quality: \t\t\t R^2 = {r2:.8f}")
+    print(f"Linear region started at \t t = {data['time'][firststep]:.8f}")
     print(f"Used {npoints_fit} points for fit.")
     results = []
     results.append(
