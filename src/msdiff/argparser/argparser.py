@@ -261,7 +261,7 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         "--tol",
         type=float,
         dest="tolerance",
-        help="R|Tolerance for the MSD calculation in Angstrom.",
+        help="R|Tolerance for identifying the linear region.",
         default=0.05,
     )
     p.add_argument(
