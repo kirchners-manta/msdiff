@@ -239,7 +239,7 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         type=str,
         metavar="OUTPUT",
         help="R|Output file name.",
-        default="msd_fit.pdf",
+        default="msdiff_out.csv",
     )
     p.add_argument(
         "-p",
@@ -258,11 +258,11 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         action=action_not_less_than(100.0),
     )
     p.add_argument(
-        "--tolerance",
+        "--tol",
         type=float,
         dest="tolerance",
         help="R|Tolerance for the MSD calculation in Angstrom.",
-        default=0.075,
+        default=0.05,
     )
     p.add_argument(
         "-v",
