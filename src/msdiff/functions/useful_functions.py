@@ -11,6 +11,20 @@ lmod = lmfit.models.LinearModel()
 
 
 def find_linear_region(data: pd.DataFrame, tol: float) -> int:
+    """Find the linear region in the MSD data.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        MSD data
+    tol : float
+        Tolerance for the slope of the linear region
+
+    Returns
+    -------
+    int
+        First step of the linear region, not its index
+    """
     # use log-log plot to find linear region
     # drop first data point to avoid zero
     lnMSD = np.log(data["msd"][1:])
@@ -51,6 +65,27 @@ def find_linear_region(data: pd.DataFrame, tol: float) -> int:
 def perform_linear_regression(
     data: pd.DataFrame, firststep: int
 ) -> tuple[float, float, float, int]:
+    """Perform linear regression on the MSD data.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        MSD data
+    firststep : int
+        First step of the linear region, not its index
+
+    Returns
+    -------
+    tuple[float, float, float, int]
+        Diffusion coefficient, its standard deviation, R^2 value and number of data points
+
+    Raises
+    ------
+    ValueError
+        Not enough data points for linear regression.
+    Warning
+        Number of data points is small.
+    """
     # select data for fitting according from linear region
     msd_data = data[data["time"] >= data["time"][firststep]]
     ndata = len(msd_data)
@@ -73,6 +108,22 @@ def perform_linear_regression(
 
 
 def calc_Hummer_correction(temp: float, viscosity: float, box_length: float) -> float:
+    """Calculate the Hummer correction term to extrapolate the diffusion coefficient to infinite box size.
+
+    Parameters
+    ----------
+    temp : float
+        Temperature in K
+    viscosity : float
+        Dynamic viscosity in Pa s (= kg (m s)^-1)
+    box_length : float
+        Box length in pm
+
+    Returns
+    -------
+    float
+        Hummer correction term in 10^-12 m^2/s
+    """
     xi = 2.837298  # dimensionless
     kb = 1.38064852e-23  # Boltzmann constant in J/K
     # calculate the Hummer correction term

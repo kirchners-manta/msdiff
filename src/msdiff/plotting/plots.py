@@ -11,6 +11,15 @@ import pandas as pd
 def generate_simple_plot(
     data: pd.DataFrame, firststep: int
 ) -> None:  # pragma: no cover
+    """Generate a simple plot of the MSD data and the fitting region
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        MSD data
+    firststep : int
+        First step of the linear region, not its index
+    """
     # generate a figure object with a single axis
     fig = plt.figure(figsize=(4.5, 4.5))
     gs = fig.add_gridspec(1, 1)

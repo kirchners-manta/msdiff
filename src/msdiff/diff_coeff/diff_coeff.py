@@ -17,6 +17,23 @@ from ..plotting import generate_simple_plot
 
 
 def diffusion_coefficient(args: argparse.Namespace) -> int:  # pragma: no cover
+    """Main function of the MSDiff program.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        The parsed command line arguments.
+
+    Returns
+    -------
+    int
+        The exit code of the program.
+
+    Raises
+    ------
+    ValueError
+        If no linear region is found in the data.
+    """
     # read the file and drop derivative column
     data = pd.read_csv(
         args.file, sep=";", skiprows=1, names=["time", "msd", "derivative"]

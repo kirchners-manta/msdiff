@@ -8,8 +8,8 @@
 [![code style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 This repository offers a tool to calculate the diffusion coefficient based on molecular dynamics simulations.
-The program takes the output of an MSD calculation by TRAVIS and calculates the diffusion coefficient based on the slope of the mean square displacement.
-It is primarily written for the [group of Barbara Kirchner](https://www.chemie.uni-bonn.de/kirchner/de/startseite) at the University of Bonn and published under the [MIT license](./LICENSE).
+The program takes the output of an MSD calculation by TRAVIS (or any other program, as long as the format fits, see below) and calculates the diffusion coefficient based on the slope of the mean square displacement.
+It is primarily designed for the [group of Barbara Kirchner](https://www.chemie.uni-bonn.de/kirchner/de/startseite) at the University of Bonn but open to everyone and published under the [MIT license](./LICENSE).
 
 ## Installation
 
@@ -21,12 +21,14 @@ cd msdiff
 pip install .
 ```
 
+Python >= 3.7 is required.
+
 ## Usage
 
 The program is designed as a command line tool. 
 It takes the following inputs:
 ```
-usage: msdiff [-h] -l LENGTH -f data_file [-o OUTPUT] [-p] [-t TEMPERATURE] [--tol TOLERANCE] [-v VISCOSITY]
+usage: msdiff [-h] -l LENGTH -f data_file [-o OUTPUT] [-p] [-t TEMPERATURE] [--tol TOLERANCE] [-v VISCOSITY] [--version]
 ```
 * `-l` or `--length` takes the length of the cubic box in pm.
 * `-f` or `--file` takes the file containing the mean square displacement in csv format with time (in ps) in the first column and the MSD (in pm^2) in the second column. A third column can be given and will be ignored (usually the derivative in a TRAVIS MSD calculation).
@@ -35,6 +37,7 @@ usage: msdiff [-h] -l LENGTH -f data_file [-o OUTPUT] [-p] [-t TEMPERATURE] [--t
 * `-t` or `--temperature` takes the temperature in K. The default is `353.15`.
 * `--tol` or `--tolerance` takes the tolerance for identifying the linear region. The default is `0.05`.
 * `-v` or `--viscosity` takes the dynamic viscosity of the system in kg/(m*s). The default is `0.00787` (value for [EMIM][NTF2] at 353.15 K).
+* `--version` shows the version number and exits.
 
 Examples for the usage are given in the [examples](./examples) folder.
 
