@@ -57,7 +57,7 @@ def perform_linear_regression(
     if ndata < 2:
         raise ValueError("Not enough data points for linear regression.")
     elif ndata < 100:
-        print(f"Warning: Small number ({ndata}) of data points.")
+        raise Warning("Small number of data points.")
 
     # initial guess to improve the fit
     init = lmod.guess(data=msd_data["msd"], x=msd_data["time"])
