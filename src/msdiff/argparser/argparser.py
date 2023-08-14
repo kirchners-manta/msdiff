@@ -234,6 +234,13 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         help="R|File containing the mean square displacement in csv format",
     )
     p.add_argument(
+        "--from-travis",
+        action="store_true",
+        dest="from_travis",
+        help="R|If the input file is an MSD from TRAVIS in the lmp format, the box length can be read from the 'travis.log' file.",
+        default=False,
+    )
+    p.add_argument(
         "-o",
         "--output",
         type=str,

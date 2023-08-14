@@ -32,6 +32,22 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
     (D, D_std, r2, npoints_fit) = perform_linear_regression(data, firststep)
 
     # Hummer correction
+    # if 'from travis' option is true, check for the box length in travis output file
+    if args.from_travis:
+        # check if travis.log exists
+        try:
+            with open("travis.log", "r") as f:
+                for line in f:
+                    if "Found cell geometry data in trajectory file" in line:
+                        # read box length from the over next line
+                        next(f)
+                        line = next(f)
+                        args.length = float(line.split()[2])
+        except FileNotFoundError:
+            raise FileNotFoundError(
+                "travis.log not found. Please run msdiff from travis output directory."
+            )
+
     k_hummer = calc_Hummer_correction(args.temperature, args.viscosity, args.length)
 
     # print results
