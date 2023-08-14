@@ -16,7 +16,24 @@ from ..functions import (
 from ..plotting import generate_simple_plot
 
 
-def diffusion_coefficient(args: argparse.Namespace) -> int:
+def diffusion_coefficient(args: argparse.Namespace) -> int:  # pragma: no cover
+    """Main function of the MSDiff program.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        The parsed command line arguments.
+
+    Returns
+    -------
+    int
+        The exit code of the program.
+
+    Raises
+    ------
+    ValueError
+        If no linear region is found in the data.
+    """
     # read the file and drop derivative column
     data = pd.read_csv(
         args.file, sep=";", skiprows=1, names=["time", "msd", "derivative"]
@@ -52,20 +69,21 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
 
     # print results
     print("  \033[1mMSDiff results\033[0m")
-    print(f"Diffusion coefficient: \t\t D = ({D:.8f} ± {D_std:.8f}) * 10^-12 m^2/s")
-    print(f"Hummer correction term: \t K =  {k_hummer:.8f}         * 10^-12 m^2/s")
-    print(f"Fit quality: \t\t\t R^2 = {r2:.8f}")
-    print(f"Linear region started at \t t = {data['time'][firststep]:.8f}")
-    print(f"Used {npoints_fit} points for fit.")
+    print(f"Diffusion coefficient: \t\t D = ({D:.4f} ± {D_std:.4f}) * 10^-12 m^2/s")
+    print(f"Hummer correction term: \t K =  {k_hummer:.4f}         * 10^-12 m^2/s")
+    print(f"Fit quality: \t\t\t R^2 = {r2:.4f}")
+    print(f"Linear region started at \t t = {data['time'][firststep]:.4f}")
+    print(f"Used {npoints_fit} of {len(data)} points for fit.")
     results = []
     results.append(
         [
-            f"{D:.3f}",
-            f"{D_std:.3f}",
-            f"{k_hummer:.3f}",
-            f"{r2:.4f}",
-            f"{data['time'][firststep]:.2f}",
+            f"{D:.8f}",
+            f"{D_std:.8f}",
+            f"{k_hummer:.8f}",
+            f"{r2:.8f}",
+            f"{data['time'][firststep]:.8f}",
             npoints_fit,
+            len(data),
         ]
     )
 
@@ -79,6 +97,7 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
             "R^2",
             "Lin reg start at t =",
             "Npoints_fit",
+            "Npoints_total",
         ],
     )
     output.to_csv(args.output, index=False)

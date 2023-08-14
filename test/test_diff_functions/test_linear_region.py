@@ -4,11 +4,12 @@ Test the function to find the linear region of an MSD data set.
 
 from __future__ import annotations
 
-import numpy as np
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
-from msdiff import find_linear_region, perform_linear_regression, calc_Hummer_correction
+from msdiff import calc_Hummer_correction, find_linear_region, perform_linear_regression
 
 
 @pytest.mark.parametrize(
@@ -16,7 +17,7 @@ from msdiff import find_linear_region, perform_linear_regression, calc_Hummer_co
     [
         (
             pd.read_csv(
-                "./examples/ntf2/msd_from_travis.csv",
+                Path(__file__).parent / "data" / "msd_ntf2.csv",
                 sep=";",
                 skiprows=1,
                 names=["time", "msd", "derivative"],
@@ -25,7 +26,7 @@ from msdiff import find_linear_region, perform_linear_regression, calc_Hummer_co
         ),
         (
             pd.read_csv(
-                "./examples/emim/msd_C6H11N2_#3.csv",
+                Path(__file__).parent / "data" / "msd_emim.csv",
                 sep=";",
                 skiprows=1,
                 names=["time", "msd", "derivative"],
@@ -45,7 +46,7 @@ def test_find_linear_region(
     [
         (
             pd.read_csv(
-                "./examples/ntf2/msd_from_travis.csv",
+                Path(__file__).parent / "data" / "msd_ntf2.csv",
                 sep=";",
                 skiprows=1,
                 names=["time", "msd", "derivative"],
@@ -58,7 +59,7 @@ def test_find_linear_region(
         ),
         (
             pd.read_csv(
-                "./examples/emim/msd_C6H11N2_#3.csv",
+                Path(__file__).parent / "data" / "msd_emim.csv",
                 sep=";",
                 skiprows=1,
                 names=["time", "msd", "derivative"],
@@ -82,6 +83,21 @@ def test_perform_linear_regression(
     assert perform_linear_regression(msd_file, firststep) == pytest.approx(
         (D, D_std, r2, npoints_fit)
     )
+
+
+def test_fail_linear_regression() -> None:
+    msd_file = pd.DataFrame(
+        {
+            "time": [1, 2, 3, 4, 5],
+            "msd": [1, 2, 3, 4, 5],
+            "derivative": [1, 1, 1, 1, 1],
+        }
+    )
+    with pytest.raises(Warning):
+        perform_linear_regression(msd_file, 1)
+
+    with pytest.raises(ValueError):
+        perform_linear_regression(msd_file, 4)
 
 
 @pytest.mark.parametrize(

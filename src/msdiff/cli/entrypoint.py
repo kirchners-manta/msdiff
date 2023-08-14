@@ -11,11 +11,10 @@ from ..diff_coeff import diffusion_coefficient
 
 
 def console_entry_point(argv: Sequence[str] | None = None) -> int:
-
     # get arguments from command line and parse them
     args = parser().parse_args(argv)
 
-    # hand over arguments to setup function
+    # hand over arguments to diffusion coefficient function
     diffusion_coefficient(args)
 
     return 0

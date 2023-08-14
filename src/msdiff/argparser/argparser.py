@@ -11,6 +11,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from .. import __version__
+
 
 # file and directory checks
 def is_file(path: str | Path) -> str | Path:
@@ -262,7 +264,7 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         metavar="TEMPERATURE",
         help="R|Temperature in K",
         default=353.15,
-        action=action_not_less_than(100.0),
+        action=action_not_less_than(200.0),
     )
     p.add_argument(
         "--tol",
@@ -270,6 +272,7 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         dest="tolerance",
         help="R|Tolerance for identifying the linear region.",
         default=0.05,
+        action=action_in_range(0.001, 0.3),
     )
     p.add_argument(
         "-v",
@@ -280,5 +283,10 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         default=0.00787,  # 0.00787 for [EMIM][NTf2] / 0.00958 for [EMIM][BF4]
         action=action_not_less_than(0.0),
     )
-
+    p.add_argument(
+        "--version",
+        action="version",
+        version=f"{name} {__version__}",
+        help="R|Show version and exit.",
+    )
     return p
