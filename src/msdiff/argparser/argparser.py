@@ -206,7 +206,7 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="msdiff",
         description="Program to calculate the diffusion coefficient from a TRAVIS MSD output.",
-        epilog="Written for the Kirchner group by Tom Frömbgen. Internal use only.",
+        epilog="Written for the Kirchner group by Tom Frömbgen.",
         formatter_class=lambda prog: Formatter(prog, max_help_position=60),
         add_help=False,
         **kwargs,
@@ -220,9 +220,10 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
     )
     p.add_argument(
         "-l",
-        "--length",
+        "--len",
         type=float,
         metavar="LENGTH",
+        dest="length",
         help="R|Length of the cubic box in pm.",
         action=action_not_less_than(500.0),
         required=True,
@@ -231,9 +232,19 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         "-f",
         "--file",
         type=is_file,
-        metavar="data_file",
+        metavar="MSD_FILE",
+        dest="file",
         required=True,
         help="R|File containing the mean square displacement in csv format",
+    )
+    p.add_argument(
+        "--d_visco",
+        type=float,
+        metavar="DELTA_VISCOSITY",
+        dest="delta_viscosity",
+        help="R|(Experimental) error of the dynamic viscosity of the system in kg/(m*s)",
+        default=0.0,
+        action=action_not_less_than(0.0),
     )
     p.add_argument(
         "--from-travis",
@@ -259,9 +270,10 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
     )
     p.add_argument(
         "-t",
-        "--temperature",
+        "--temp",
         type=float,
         metavar="TEMPERATURE",
+        dest="temperature",
         help="R|Temperature in K",
         default=353.15,
         action=action_not_less_than(200.0),
@@ -276,7 +288,8 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
     )
     p.add_argument(
         "-v",
-        "--viscosity",
+        "--visco",
+        dest="viscosity",
         type=float,
         metavar="VISCOSITY",
         help="R|Dynamic viscosity of the system in kg/(m*s)",

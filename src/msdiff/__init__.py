@@ -14,6 +14,6 @@ from .diff_coeff import diffusion_coefficient
 from .functions import (
     calc_Hummer_correction,
     find_linear_region,
-    perform_linear_regression,
+    get_diffusion_coefficient,
 )
 from .plotting import generate_simple_plot

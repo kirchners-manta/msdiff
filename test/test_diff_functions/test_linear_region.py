@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from msdiff import calc_Hummer_correction, find_linear_region, perform_linear_regression
+from msdiff import calc_Hummer_correction, find_linear_region, get_diffusion_coefficient
 
 
 @pytest.mark.parametrize(
@@ -42,7 +42,28 @@ def test_find_linear_region(
 
 
 @pytest.mark.parametrize(
-    "msd_file, firststep, D, D_std, r2, npoints_fit",
+    "temperature, viscosity, box_length, delta_viscosity, k_hummer, delta_k_hummer",
+    [
+        (298.15, 0.00787, 1234, 0.00018, 63.80164586, 1.45924984),
+        (350, 0.5, 10000, 0.0000, 0.14547387, 0.0000),
+        (201, 0.00958, 5473, 0.00001, 7.96694943, 0.00831623),
+    ],
+)
+def test_calc_Hummer_correction(
+    temperature: float,
+    viscosity: float,
+    box_length: float,
+    delta_viscosity: float,
+    k_hummer: float,
+    delta_k_hummer: float,
+) -> None:
+    assert calc_Hummer_correction(
+        temperature, viscosity, box_length, delta_viscosity
+    ) == pytest.approx((k_hummer, delta_k_hummer))
+
+
+@pytest.mark.parametrize(
+    "msd_file, firststep, temp, viscosity, box_length, delta_viscosity, diff_coeff, delta_diff_coeff, r2, npoints_fit, k_hummer, delta_k_hummer",
     [
         (
             pd.read_csv(
@@ -52,10 +73,16 @@ def test_find_linear_region(
                 names=["time", "msd", "derivative"],
             ),
             661,
+            298.15,
+            0.00787,
+            1234,
+            0.00018,
             21.20593745,
             0.00786019,
             0.99995343,
             341,
+            63.80164586,
+            1.45924984,
         ),
         (
             pd.read_csv(
@@ -65,23 +92,37 @@ def test_find_linear_region(
                 names=["time", "msd", "derivative"],
             ),
             71,
+            350,
+            0.5,
+            10000,
+            0.0000,
             192.81331505,
             0.02890367,
             0.9999790,
             936,
+            0.14547387,
+            0.0000,
         ),
     ],
 )
 def test_perform_linear_regression(
     msd_file: pd.DataFrame,
     firststep: int,
-    D: float,
-    D_std: float,
+    temp: float,
+    viscosity: float,
+    box_length: float,
+    delta_viscosity: float,
+    diff_coeff: float,
+    delta_diff_coeff: float,
     r2: float,
     npoints_fit: int,
+    k_hummer: float,
+    delta_k_hummer: float,
 ) -> None:
-    assert perform_linear_regression(msd_file, firststep) == pytest.approx(
-        (D, D_std, r2, npoints_fit)
+    assert get_diffusion_coefficient(
+        msd_file, firststep, temp, viscosity, box_length, delta_viscosity
+    ) == pytest.approx(
+        (diff_coeff, delta_diff_coeff, r2, npoints_fit, k_hummer, delta_k_hummer)
     )
 
 
@@ -94,23 +135,7 @@ def test_fail_linear_regression() -> None:
         }
     )
     with pytest.raises(Warning):
-        perform_linear_regression(msd_file, 1)
+        get_diffusion_coefficient(msd_file, 1, 200, 0.007, 5000, 0.0001)
 
     with pytest.raises(ValueError):
-        perform_linear_regression(msd_file, 4)
-
-
-@pytest.mark.parametrize(
-    "temperature, viscosity, box_length, k_hummer",
-    [
-        (298.15, 0.00787, 1234, 63.80164586),
-        (350, 0.5, 10000, 0.14547387),
-        (100, 0.00958, 5473, 3.96365643),
-    ],
-)
-def test_calc_Hummer_correction(
-    temperature: float, viscosity: float, box_length: float, k_hummer: float
-) -> None:
-    assert calc_Hummer_correction(temperature, viscosity, box_length) == pytest.approx(
-        (k_hummer)
-    )
+        get_diffusion_coefficient(msd_file, 4, 200, 0.007, 5000, 0.0001)

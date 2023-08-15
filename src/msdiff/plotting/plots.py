@@ -7,6 +7,10 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import pandas as pd
 
+import lmfit
+
+lmod = lmfit.models.LinearModel()
+
 
 def generate_simple_plot(
     data: pd.DataFrame, firststep: int
@@ -25,6 +29,13 @@ def generate_simple_plot(
     gs = fig.add_gridspec(1, 1)
     ax = fig.add_subplot(gs[0, 0])
 
+    # add fit to plot
+    msd_data = data[data["time"] >= data["time"][firststep]]
+    init = lmod.guess(data=msd_data["msd"], x=msd_data["time"])
+    out = lmod.fit(data=msd_data["msd"], x=msd_data["time"], params=init)
+    dely = out.eval_uncertainty(sigma=3, x=msd_data["time"])
+
+    # plot
     ax.plot(
         data["time"], data["msd"], color="black", linewidth=1, alpha=0.3, label="data"
     )
@@ -38,6 +49,14 @@ def generate_simple_plot(
     )
     ax.axvline(
         data["time"][firststep], color="k", linewidth=1, linestyle=":", alpha=0.5
+    )
+    ax.fill_between(
+        msd_data["time"],
+        out.best_fit - dely,
+        out.best_fit + dely,
+        color="red",
+        alpha=0.5,
+        label=r"3 $\sigma$ confidence interval",
     )
 
     ax.set_xlabel(r"$\tau$ / ps")

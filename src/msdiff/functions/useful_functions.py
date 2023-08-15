@@ -34,6 +34,7 @@ def find_linear_region(data: pd.DataFrame, tol: float) -> int:
     linear_region = True
     counter = 1
     ndata = len(lntime)
+    firststep = -1
 
     # start from the end of the data set and go backwards
     # in increments of timestepskip
@@ -59,12 +60,55 @@ def find_linear_region(data: pd.DataFrame, tol: float) -> int:
             linear_region = False
             return firststep
 
-    return -1
+    return firststep
 
 
-def perform_linear_regression(
-    data: pd.DataFrame, firststep: int
-) -> tuple[float, float, float, int]:
+def calc_Hummer_correction(
+    temp: float, viscosity: float, box_length: float, delta_viscosity: float
+) -> tuple[float, float]:
+    """Calculate the Hummer correction term to extrapolate the diffusion coefficient to infinite box size.
+
+    Parameters
+    ----------
+    temp : float
+        Temperature in K
+    viscosity : float
+        Dynamic viscosity in Pa s (= kg (m s)^-1)
+    box_length : float
+        Box length in pm
+    delta_viscosity : float
+        Reported experimental error in viscosity in Pa s (= kg (m s)^-1)
+
+    Returns
+    -------
+    tuple[float, float]
+        Hummer correction term and its standard deviation
+    """
+    xi = 2.837298  # dimensionless
+    kb = 1.38064852e-23  # Boltzmann constant in J/K
+
+    # calculate the Hummer correction term
+    k_hum = kb * xi * temp * 1e24 / (6 * np.pi * viscosity * box_length)
+    delta_k_hum = (
+        kb
+        * xi
+        * temp
+        * 1e24
+        * delta_viscosity
+        / (6 * np.pi * viscosity**2 * box_length)
+    )
+
+    return k_hum, delta_k_hum
+
+
+def get_diffusion_coefficient(
+    data: pd.DataFrame,
+    firststep: int,
+    temp: float,
+    viscosity: float,
+    box_length: float,
+    delta_viscosity: float,
+) -> tuple[float, float, float, int, float, float]:
     """Perform linear regression on the MSD data.
 
     Parameters
@@ -73,11 +117,19 @@ def perform_linear_regression(
         MSD data
     firststep : int
         First step of the linear region, not its index
+    temp : float
+        Temperature in K
+    viscosity : float
+        Dynamic viscosity in Pa s (= kg (m s)^-1)
+    box_length : float
+        Box length in pm
+    delta_viscosity : float
+        Reported experimental error in viscosity in Pa s (= kg (m s)^-1)
 
     Returns
     -------
-    tuple[float, float, float, int]
-        Diffusion coefficient, its standard deviation, R^2 value and number of data points
+    tuple[float, float, float, int, float, float]
+        Diffusion coefficient, its standard error, R^2 value and number of data points, Hummer correction term and its standard deviation
 
     Raises
     ------
@@ -97,36 +149,16 @@ def perform_linear_regression(
     # initial guess to improve the fit
     init = lmod.guess(data=msd_data["msd"], x=msd_data["time"])
     # perform the fit
-    fit = lmod.fit(data=msd_data["msd"], x=msd_data["time"], params=init)
+    out = lmod.fit(data=msd_data["msd"], x=msd_data["time"], params=init)
 
     # results
-    D = fit.best_values["slope"] / 6
-    D_std = fit.params["slope"].stderr / 6
-    r2 = 1 - fit.residual.var() / np.var(msd_data["msd"])
+    diff_coeff = out.best_values["slope"] / 6
+    delta_diff_coeff = out.params["slope"].stderr / 6
+    r2 = 1 - out.residual.var() / np.var(msd_data["msd"])  # type: ignore
+    # print(out.fit_report())
 
-    return D, D_std, r2, ndata
+    k_hum, delta_k_hum = calc_Hummer_correction(
+        temp, viscosity, box_length, delta_viscosity
+    )
 
-
-def calc_Hummer_correction(temp: float, viscosity: float, box_length: float) -> float:
-    """Calculate the Hummer correction term to extrapolate the diffusion coefficient to infinite box size.
-
-    Parameters
-    ----------
-    temp : float
-        Temperature in K
-    viscosity : float
-        Dynamic viscosity in Pa s (= kg (m s)^-1)
-    box_length : float
-        Box length in pm
-
-    Returns
-    -------
-    float
-        Hummer correction term in 10^-12 m^2/s
-    """
-    xi = 2.837298  # dimensionless
-    kb = 1.38064852e-23  # Boltzmann constant in J/K
-    # calculate the Hummer correction term
-    k_hummer = kb * xi * temp * 1e24 / (6 * np.pi * viscosity * box_length)
-
-    return k_hummer
+    return diff_coeff, delta_diff_coeff, r2, ndata, k_hum, delta_k_hum

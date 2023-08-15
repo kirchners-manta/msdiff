@@ -22,6 +22,9 @@ def test_defaults() -> None:
         f"-l 1234 -f {example_file}".split()
     )  # add split because, the flags have to be given as arguments as well
 
+    assert isinstance(args.from_travis, bool)
+    assert args.from_travis == False
+
     assert isinstance(args.output, str)
     assert args.output == "msdiff_out.csv"
 
@@ -37,6 +40,9 @@ def test_defaults() -> None:
     assert isinstance(args.viscosity, float)
     assert args.viscosity == 0.00787
 
+    assert isinstance(args.delta_viscosity, float)
+    assert args.delta_viscosity == 0.0
+
 
 def test_fail_type() -> None:
     """Test if the type of the arguments is correct"""
@@ -51,11 +57,13 @@ def test_fail_type() -> None:
         with pytest.raises(SystemExit):
             parser.parse_args("-l abc".split())
         with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --temperature abc".split())
+            parser.parse_args(f"-l 5000 -f {example_file} --temp abc".split())
         with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --tolerance abc".split())
+            parser.parse_args(f"-l 5000 -f {example_file} --tol abc".split())
         with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --viscosity abc".split())
+            parser.parse_args(f"-l 5000 -f {example_file} --visco abc".split())
+        with pytest.raises(SystemExit):
+            parser.parse_args(f"-l 5000 -f {example_file} --d_visco abc".split())
 
 
 def test_fail_value() -> None:
@@ -73,10 +81,26 @@ def test_fail_value() -> None:
         with pytest.raises(SystemExit):
             parser.parse_args("-l 1".split())
         with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --temperature 123".split())
+            parser.parse_args(f"-l 5000 -f {example_file} --temp 123".split())
         with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --tolerance 0.31".split())
+            parser.parse_args(f"-l 5000 -f {example_file} --tol 0.31".split())
         with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --tolerance 0".split())
+            parser.parse_args(f"-l 5000 -f {example_file} --tol 0".split())
         with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --viscosity -0.1".split())
+            parser.parse_args(f"-l 5000 -f {example_file} --visco -0.1".split())
+        with pytest.raises(SystemExit):
+            parser.parse_args(f"-l 5000 -f {example_file} --d_visco -0.1".split())
+
+
+# def test_no_travis_log() -> None:
+#     """Test if the Travis log file is present when option is called"""
+
+#     example_file = Path(__file__).parent / "data" / "example.csv"
+
+#     parser = argparser.parser()
+
+#     with redirect_stderr(StringIO()):
+#         with pytest.raises(FileNotFoundError):
+#             parser.parse_args(
+#                 f"-l 5000 -f {example_file} --tol 0.2 --from-travis".split()
+#             )
