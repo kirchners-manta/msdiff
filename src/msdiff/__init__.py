@@ -10,7 +10,11 @@ It is published under the MIT license.
 
 from .__version__ import __version__
 from .cli import console_entry_point
-from .diff_coeff import diffusion_coefficient
+from .diff_coeff import (
+    diffusion_coefficient,
+    print_results_to_file,
+    print_results_to_stdout,
+)
 from .functions import (
     calc_Hummer_correction,
     find_linear_region,

@@ -10,11 +10,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from ..functions import (
-    find_linear_region,
-    get_diffusion_coefficient,
-)
+from ..functions import find_linear_region, get_diffusion_coefficient
 from ..plotting import generate_simple_plot
+from .output import print_results_to_file, print_results_to_stdout
 
 
 def diffusion_coefficient(args: argparse.Namespace) -> int:
@@ -65,7 +63,7 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
     (
         diff_coeff,
         delta_diff_coeff,
-        r2,
+        rsquared,
         npoints_fit,
         k_hum,
         delta_k_hum,
@@ -78,44 +76,51 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
         args.delta_viscosity,
     )
 
-    # print results
-    print("  \033[1mMSDiff results\033[0m")
-    print(
-        f"Diffusion coefficient: \t\t D = ({diff_coeff:.8f} ± {delta_diff_coeff:.8f}) * 10^-12 m^2/s"
-    )
-    print(
-        f"Hummer correction term: \t K = ({k_hum:.8f} ± {delta_k_hum:.8f}) * 10^-12 m^2/s"
-    )
-    print(f"Fit quality: \t\t\t R^2 = {r2:.8f}")
-    print(f"Linear region started at \t t = {data['time'][firststep]:.8f}")
-    print(f"Used {npoints_fit} of {len(data)} points for fit.")
-    results = []
-    results.append(
+    # summarize results to data frame
+    result_list = []
+    result_list.append(
         [
-            f"{diff_coeff:.8f}",
-            f"{delta_diff_coeff:.8f}",
-            f"{k_hum:.8f}",
-            f"{r2:.8f}",
-            f"{data['time'][firststep]:.8f}",
+            diff_coeff,
+            delta_diff_coeff,
+            k_hum,
+            delta_k_hum,
+            rsquared,
+            data["time"][firststep],
             npoints_fit,
             len(data),
         ]
     )
-
-    # write results to csv file
-    output = pd.DataFrame(
-        data=results,
+    results = pd.DataFrame(
+        data=result_list,
         columns=[
-            "D / 10^-12 m^2/s",
-            "D_std / 10^-12 m^2/s",
-            "K_hummer / 10^-12 m^2/s",
-            "R^2",
-            "Lin reg start at t =",
-            "Npoints_fit",
-            "Npoints_total",
+            "diff_coeff",
+            "delta_diff_coeff",
+            "k_hum",
+            "delta_k_hum",
+            "rsquared",
+            "fit_start",
+            "npoints_fit",
+            "npoints_data",
         ],
     )
-    output.to_csv(args.output, index=False)
+
+    print_results_to_stdout(results)
+
+    # rename columns for file output
+    results = results.rename(
+        columns={
+            "diff_coeff": "D / 10^-12 m^2/s",
+            "delta_diff_coeff": "D_stderr / 10^-12 m^2/s",
+            "k_hum": "K / 10^-12 m^2/s",
+            "delta_k_hum": "K_std / 10^-12 m^2/s",
+            "rsquared": "R^2",
+            "fit_start": "Fit start / ps",
+            "npoints_fit": "Npoints_fit",
+            "npoints_data": "Npoints_data",
+        }
+    )
+
+    print_results_to_file(results, args.output)
 
     # generate a plot if requested
     if args.plot:

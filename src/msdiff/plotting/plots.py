@@ -4,10 +4,9 @@ Plotting functions for MSD and fits.
 
 from __future__ import annotations
 
+import lmfit
 import matplotlib.pyplot as plt
 import pandas as pd
-
-import lmfit
 
 lmod = lmfit.models.LinearModel()
 
@@ -56,7 +55,7 @@ def generate_simple_plot(
         out.best_fit + dely,
         color="red",
         alpha=0.5,
-        label=r"3 $\sigma$ confidence interval",
+        label=r"3$\sigma$ confidence interval",
     )
 
     ax.set_xlabel(r"$\tau$ / ps")
