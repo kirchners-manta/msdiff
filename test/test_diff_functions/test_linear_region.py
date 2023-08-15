@@ -20,7 +20,7 @@ from msdiff import calc_Hummer_correction, find_linear_region, get_diffusion_coe
                 Path(__file__).parent / "data" / "msd_ntf2.csv",
                 sep=";",
                 skiprows=1,
-                names=["time", "msd", "derivative"],
+                names=["time", "msd_total", "derivative"],
             ),
             661,
         ),
@@ -29,7 +29,7 @@ from msdiff import calc_Hummer_correction, find_linear_region, get_diffusion_coe
                 Path(__file__).parent / "data" / "msd_emim.csv",
                 sep=";",
                 skiprows=1,
-                names=["time", "msd", "derivative"],
+                names=["time", "msd_total", "derivative"],
             ),
             71,
         ),
@@ -70,7 +70,7 @@ def test_calc_Hummer_correction(
                 Path(__file__).parent / "data" / "msd_ntf2.csv",
                 sep=";",
                 skiprows=1,
-                names=["time", "msd", "derivative"],
+                names=["time", "msd_total", "derivative"],
             ),
             661,
             298.15,
@@ -89,7 +89,7 @@ def test_calc_Hummer_correction(
                 Path(__file__).parent / "data" / "msd_emim.csv",
                 sep=";",
                 skiprows=1,
-                names=["time", "msd", "derivative"],
+                names=["time", "msd_total", "derivative"],
             ),
             71,
             350,
@@ -130,7 +130,7 @@ def test_fail_linear_regression() -> None:
     msd_file = pd.DataFrame(
         {
             "time": [1, 2, 3, 4, 5],
-            "msd": [1, 2, 3, 4, 5],
+            "msd_total": [1, 2, 3, 4, 5],
             "derivative": [1, 1, 1, 1, 1],
         }
     )

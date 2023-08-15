@@ -10,13 +10,15 @@ import pandas as pd
 lmod = lmfit.models.LinearModel()
 
 
-def find_linear_region(data: pd.DataFrame, tol: float) -> int:
+def find_linear_region(data: pd.DataFrame, mol_index: int, tol: float) -> int:
     """Find the linear region in the MSD data.
 
     Parameters
     ----------
     data : pd.DataFrame
         MSD data
+    mol_index : int
+        Index of the data set, i.e., the molecule
     tol : float
         Tolerance for the slope of the linear region
 
@@ -27,7 +29,7 @@ def find_linear_region(data: pd.DataFrame, tol: float) -> int:
     """
     # use log-log plot to find linear region
     # drop first data point to avoid zero
-    lnMSD = np.log(data["msd"][1:])
+    lnMSD = np.log(data[f"msd_{mol_index+1}"][1:])
     lntime = np.log(data["time"][1:])
 
     # set initial values
@@ -64,7 +66,10 @@ def find_linear_region(data: pd.DataFrame, tol: float) -> int:
 
 
 def calc_Hummer_correction(
-    temp: float, viscosity: float, box_length: float, delta_viscosity: float
+    temp: float,
+    viscosity: float,
+    box_length: float,
+    delta_viscosity: float,
 ) -> tuple[float, float]:
     """Calculate the Hummer correction term to extrapolate the diffusion coefficient to infinite box size.
 
@@ -82,7 +87,7 @@ def calc_Hummer_correction(
     Returns
     -------
     tuple[float, float]
-        Hummer correction term and its standard deviation
+        Hummer correction term and its standard deviation in m^2 s^-1
     """
     xi = 2.837298  # dimensionless
     kb = 1.38064852e-23  # Boltzmann constant in J/K
@@ -103,18 +108,21 @@ def calc_Hummer_correction(
 
 def get_diffusion_coefficient(
     data: pd.DataFrame,
+    mol_index: int,
     firststep: int,
     temp: float,
     viscosity: float,
     box_length: float,
     delta_viscosity: float,
-) -> tuple[float, float, float, int, float, float]:
+) -> tuple[float, float, float, int, float | None, float | None]:
     """Perform linear regression on the MSD data.
 
     Parameters
     ----------
     data : pd.DataFrame
         MSD data
+    mol_index : int
+        Index of the data set, i.e., the molecule
     firststep : int
         First step of the linear region, not its index
     temp : float
@@ -128,8 +136,8 @@ def get_diffusion_coefficient(
 
     Returns
     -------
-    tuple[float, float, float, int, float, float]
-        Diffusion coefficient, its standard error, R^2 value and number of data points, Hummer correction term and its standard deviation
+    tuple[float, float, float, int, float | None, float | None]
+        Diffusion coefficient, its standard error, R^2 value and number of data points, Hummer correction term and its standard deviation. The latter two are only returned for the first molecule because they are the same for all molecules.
 
     Raises
     ------
@@ -147,18 +155,24 @@ def get_diffusion_coefficient(
         raise Warning("Small number of data points.")
 
     # initial guess to improve the fit
-    init = lmod.guess(data=msd_data["msd"], x=msd_data["time"])
+    init = lmod.guess(data=msd_data[f"msd_{mol_index+1}"], x=msd_data["time"])
     # perform the fit
-    out = lmod.fit(data=msd_data["msd"], x=msd_data["time"], params=init)
+    out = lmod.fit(data=msd_data[f"msd_{mol_index+1}"], x=msd_data["time"], params=init)
 
     # results
     diff_coeff = out.best_values["slope"] / 6
     delta_diff_coeff = out.params["slope"].stderr / 6
-    r2 = 1 - out.residual.var() / np.var(msd_data["msd"])  # type: ignore
-    # print(out.fit_report())
+    r2 = 1 - out.residual.var() / np.var(msd_data[f"msd_{mol_index+1}"])  # type: ignore
 
-    k_hum, delta_k_hum = calc_Hummer_correction(
-        temp, viscosity, box_length, delta_viscosity
-    )
+    if mol_index == 0:
+        k_hum, delta_k_hum = calc_Hummer_correction(
+            temp,
+            viscosity,
+            box_length,
+            delta_viscosity,
+        )
+    elif mol_index > 0:
+        k_hum = None
+        delta_k_hum = None
 
     return diff_coeff, delta_diff_coeff, r2, ndata, k_hum, delta_k_hum

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from msdiff import argparser
+from msdiff import argparser, diffusion_coefficient
 
 
 def test_defaults() -> None:
@@ -92,15 +92,15 @@ def test_fail_value() -> None:
             parser.parse_args(f"-l 5000 -f {example_file} --d_visco -0.1".split())
 
 
-# def test_no_travis_log() -> None:
-#     """Test if the Travis log file is present when option is called"""
+def test_no_travis_log() -> None:
+    """Test if the Travis log file is present when option is called"""
 
-#     example_file = Path(__file__).parent / "data" / "example.csv"
+    example_file = Path(__file__).parent / "data" / "example.csv"
 
-#     parser = argparser.parser()
+    parser = argparser.parser()
 
-#     with redirect_stderr(StringIO()):
-#         with pytest.raises(FileNotFoundError):
-#             parser.parse_args(
-#                 f"-l 5000 -f {example_file} --tol 0.2 --from-travis".split()
-#             )
+    with redirect_stderr(StringIO()):
+        with pytest.raises(FileNotFoundError):
+            diffusion_coefficient(
+                parser.parse_args(f"-l 5000 -f {example_file} --from-travis".split())
+            )

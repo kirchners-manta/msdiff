@@ -6,4 +6,5 @@ This module contains the main part i.e., the calculation functions for the diffu
 """
 
 from .diff_coeff import diffusion_coefficient
+from .input import process_input
 from .output import print_results_to_file, print_results_to_stdout
