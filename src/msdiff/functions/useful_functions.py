@@ -174,5 +174,7 @@ def get_diffusion_coefficient(
     elif mol_index > 0:
         k_hum = None
         delta_k_hum = None
+    else:
+        raise ValueError("Molecule index must not be negative.")
 
     return diff_coeff, delta_diff_coeff, r2, ndata, k_hum, delta_k_hum

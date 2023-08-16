@@ -32,11 +32,13 @@ usage: msdiff [-h] -l LENGTH -f data_file [-o OUTPUT] [-p] [-t TEMPERATURE] [--t
 ```
 * `-l` or `--length` takes the length of the cubic box in pm.
 * `-f` or `--file` takes the file containing the mean square displacement in csv format with time (in ps) in the first column and the MSD (in pm^2) in the second column. A third column can be given and will be ignored (usually the derivative in a TRAVIS MSD calculation).
+* `--d_visco` takes the (experimental) error of the dynamic viscosity in kg/(m*s). The default is `0.0`.
+* `--from-travis` indicates that the input file is a TRAVIS output and that the `travis.log` file is in the directory. If so, the box length is read from the log file. A dummy input for `-l` has to be given nontheless. The default is `False`.
 * `-o` or `--output` takes the output file name. The default is `msdiff_out.csv`.
 * `-p` or `--plot` generates a visualization of the MSD in log-log representation (`.pdf`) and shows the linear regime. The default is `False`.
-* `-t` or `--temperature` takes the temperature in K. The default is `353.15`.
-* `--tol` or `--tolerance` takes the tolerance for identifying the linear region. The default is `0.05`.
-* `-v` or `--viscosity` takes the dynamic viscosity of the system in kg/(m*s). The default is `0.00787` (value for [EMIM][NTF2] at 353.15 K).
+* `-t` or `--temp` takes the temperature in K. The default is `353.15`.
+* `--tol` or `--tol` takes the tolerance for identifying the linear region. The default is `0.05`.
+* `-v` or `--visco` takes the dynamic viscosity of the system in kg/(m*s). The default is `0.00787` (value for [EMIM][NTF2] at 353.15 K).
 * `--version` shows the version number and exits.
 
 Examples for the usage are given in the [examples](./examples) folder.

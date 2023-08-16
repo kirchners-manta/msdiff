@@ -13,15 +13,17 @@ from msdiff import calc_Hummer_correction, find_linear_region, get_diffusion_coe
 
 
 @pytest.mark.parametrize(
-    "msd_file, firststep",
+    "msd_file, mol_index, tol, firststep",
     [
         (
             pd.read_csv(
                 Path(__file__).parent / "data" / "msd_ntf2.csv",
                 sep=";",
                 skiprows=1,
-                names=["time", "msd_total", "derivative"],
+                names=["time", "msd_1", "derivative"],
             ),
+            0,
+            0.05,
             661,
         ),
         (
@@ -29,16 +31,21 @@ from msdiff import calc_Hummer_correction, find_linear_region, get_diffusion_coe
                 Path(__file__).parent / "data" / "msd_emim.csv",
                 sep=";",
                 skiprows=1,
-                names=["time", "msd_total", "derivative"],
+                names=["time", "msd_4", "derivative"],
             ),
-            71,
+            3,
+            0.07,
+            51,
         ),
     ],
 )
 def test_find_linear_region(
-    msd_file: pd.DataFrame, firststep: int, tol: float = 0.05
+    msd_file: pd.DataFrame,
+    mol_index: int,
+    tol: float,
+    firststep: int,
 ) -> None:
-    assert firststep == find_linear_region(msd_file, tol=tol)
+    assert firststep == find_linear_region(msd_file, mol_index, tol)
 
 
 @pytest.mark.parametrize(
@@ -63,15 +70,16 @@ def test_calc_Hummer_correction(
 
 
 @pytest.mark.parametrize(
-    "msd_file, firststep, temp, viscosity, box_length, delta_viscosity, diff_coeff, delta_diff_coeff, r2, npoints_fit, k_hummer, delta_k_hummer",
+    "msd_file, mol_index, firststep, temp, viscosity, box_length, delta_viscosity, diff_coeff, delta_diff_coeff, r2, npoints_fit, k_hummer, delta_k_hummer",
     [
         (
             pd.read_csv(
                 Path(__file__).parent / "data" / "msd_ntf2.csv",
                 sep=";",
                 skiprows=1,
-                names=["time", "msd_total", "derivative"],
+                names=["time", "msd_1", "derivative"],
             ),
+            0,
             661,
             298.15,
             0.00787,
@@ -89,8 +97,9 @@ def test_calc_Hummer_correction(
                 Path(__file__).parent / "data" / "msd_emim.csv",
                 sep=";",
                 skiprows=1,
-                names=["time", "msd_total", "derivative"],
+                names=["time", "msd_3", "derivative"],
             ),
+            2,
             71,
             350,
             0.5,
@@ -100,13 +109,14 @@ def test_calc_Hummer_correction(
             0.02890367,
             0.9999790,
             936,
-            0.14547387,
-            0.0000,
+            None,
+            None,
         ),
     ],
 )
 def test_perform_linear_regression(
     msd_file: pd.DataFrame,
+    mol_index: int,
     firststep: int,
     temp: float,
     viscosity: float,
@@ -116,11 +126,11 @@ def test_perform_linear_regression(
     delta_diff_coeff: float,
     r2: float,
     npoints_fit: int,
-    k_hummer: float,
-    delta_k_hummer: float,
+    k_hummer: float | None,
+    delta_k_hummer: float | None,
 ) -> None:
     assert get_diffusion_coefficient(
-        msd_file, firststep, temp, viscosity, box_length, delta_viscosity
+        msd_file, mol_index, firststep, temp, viscosity, box_length, delta_viscosity
     ) == pytest.approx(
         (diff_coeff, delta_diff_coeff, r2, npoints_fit, k_hummer, delta_k_hummer)
     )
@@ -130,12 +140,23 @@ def test_fail_linear_regression() -> None:
     msd_file = pd.DataFrame(
         {
             "time": [1, 2, 3, 4, 5],
-            "msd_total": [1, 2, 3, 4, 5],
+            "msd_1": [1, 2, 3, 4, 5],
             "derivative": [1, 1, 1, 1, 1],
         }
     )
     with pytest.raises(Warning):
-        get_diffusion_coefficient(msd_file, 1, 200, 0.007, 5000, 0.0001)
+        get_diffusion_coefficient(msd_file, 0, 1, 201, 0.007, 5000, 0.0001)
 
     with pytest.raises(ValueError):
-        get_diffusion_coefficient(msd_file, 4, 200, 0.007, 5000, 0.0001)
+        get_diffusion_coefficient(msd_file, 0, 4, 201, 0.007, 5000, 0.0001)
+
+
+def test_neg_mol_index() -> None:
+    msd_file = pd.read_csv(
+        Path(__file__).parent / "data" / "msd_emim.csv",
+        sep=";",
+        skiprows=1,
+        names=["time", "msd_-3", "derivative"],
+    )
+    with pytest.raises(ValueError):
+        get_diffusion_coefficient(msd_file, -4, 300, 201, 0.007, 5000, 0.0001)

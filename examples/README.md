@@ -17,10 +17,12 @@ The expected output is:
 
 ```
   MSDiff results
-Diffusion coefficient: 		 D = (21.21 ± 0.01) * 10^-12 m^2/s
-Hummer correction term: 	 K =  15.07         * 10^-12 m^2/s
-Fit quality: 			     R^2 = 1.0000
-Linear region started at 	 t = 5954.2774
-Used 341 points for fit.
+  ==============
+Analyzed 1 data sets:
+Diffusion coefficient: 		 D = (21.20593745 ± 0.00786019) * 10^-12 m^2/s
+Hummer correction term: 	 K = (15.06615800 ± 0.00000000) * 10^-12 m^2/s
+
+Individual results written to msdiff_mols.csv
+Average results written to msdiff_out.csv
 ```
 Additionally, the results can be found in the [MSDiff output file](./ntf2/msdiff_out.csv).
