@@ -243,7 +243,7 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         metavar="DELTA_VISCOSITY",
         dest="delta_viscosity",
         help="R|(Experimental) error of the dynamic viscosity of the system in kg/(m*s)",
-        default=0.0,
+        default=0.005039,  # calculated from equation in https://doi.org/10.1021/jp044626d
         action=action_not_less_than(0.0),
     )
     p.add_argument(
@@ -275,7 +275,7 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         metavar="TEMPERATURE",
         dest="temperature",
         help="R|Temperature in K",
-        default=353.15,
+        default=350.00,
         action=action_not_less_than(200.0),
     )
     p.add_argument(
@@ -293,7 +293,7 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         type=float,
         metavar="VISCOSITY",
         help="R|Dynamic viscosity of the system in kg/(m*s)",
-        default=0.00787,  # 0.00787 for [EMIM][NTf2] / 0.00958 for [EMIM][BF4]
+        default=0.008277,  # calculated from equation in https://doi.org/10.1021/jp044626d
         action=action_not_less_than(0.0),
     )
     p.add_argument(
