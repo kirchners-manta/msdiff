@@ -32,16 +32,16 @@ def test_defaults() -> None:
     assert args.plot == False
 
     assert isinstance(args.temperature, float)
-    assert args.temperature == 353.15
+    assert args.temperature == 350.00
 
     assert isinstance(args.tolerance, float)
     assert args.tolerance == 0.05
 
     assert isinstance(args.viscosity, float)
-    assert args.viscosity == 0.00787
+    assert args.viscosity == 0.008277
 
     assert isinstance(args.delta_viscosity, float)
-    assert args.delta_viscosity == 0.0
+    assert args.delta_viscosity == 0.005039
 
 
 def test_fail_type() -> None:

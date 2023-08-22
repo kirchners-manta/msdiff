@@ -56,7 +56,9 @@ def print_results_to_file(
     output_file : str | Path
         Output file
     """
-    results.to_csv("msdiff_mols.csv", sep=",", index=False)
+    # write msdiff_mols.csv to same directory as output_file
+    output_mols = Path(output_file).parent / "msdiff_mols.csv"
+    results.to_csv(output_mols, sep=",", index=False)
     print(f"\nIndividual results written to msdiff_mols.csv")
     results_avg.to_csv(output_file, sep=",", index=False)
     print(f"Average results written to {output_file}")
