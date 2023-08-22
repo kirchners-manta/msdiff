@@ -238,6 +238,14 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         help="R|File containing the mean square displacement in csv format",
     )
     p.add_argument(
+        "-c",
+        "--conductivity",
+        action="store_true",
+        dest="conductivity",
+        help="R|Calculate the conductivity instead of the diffusion coefficient.",
+        default=False,
+    )
+    p.add_argument(
         "--d_visco",
         type=float,
         metavar="DELTA_VISCOSITY",
