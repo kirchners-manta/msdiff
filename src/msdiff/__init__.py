@@ -21,5 +21,7 @@ from .functions import (
     calc_Hummer_correction,
     find_linear_region,
     get_diffusion_coefficient,
+    find_cond_region,
+    get_conductivity,
 )
 from .plotting import generate_simple_plot

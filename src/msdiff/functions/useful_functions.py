@@ -41,9 +41,13 @@ def find_linear_region(data: pd.DataFrame, mol_index: int, tol: float) -> int:
     # start from the end of the data set and go backwards
     # in increments of timestepskip
     while linear_region:
-        # in the beginning, take 20% of the data set, then stepwise increase by 1%
-        timestepskip = int((0.2 + counter * 0.01) * ndata)
-        timestepskip_before = int((0.2 + (counter - 1) * 0.01) * ndata)
+        # in the beginning, take 10% of the data set, then stepwise increase by 1%
+        if counter == 1:
+            timestepskip = int(0.1 * ndata)
+            timestepskip_before = 0
+        else:
+            timestepskip = int((0.1 + counter * 0.01) * ndata)
+            timestepskip_before = int((0.1 + (counter - 1) * 0.01) * ndata)
 
         # check if the end of the data set is reached
         # if not calculate slope between two points and check if it is within tolerance to 1
@@ -52,9 +56,12 @@ def find_linear_region(data: pd.DataFrame, mol_index: int, tol: float) -> int:
             t2 = ndata - timestepskip_before
             slope = (lnMSD[t1] - lnMSD[t2]) / (lntime[t1] - lntime[t2])
             if np.abs(slope - 1.0) > tol:
-                linear_region = False
-                firststep = t1
-                return firststep
+                if counter == 1:
+                    raise ValueError("No linear region found.")
+                else:
+                    linear_region = False
+                    firststep = t1
+                    return firststep
             else:
                 counter += 1
         # else, exit the loop and return the last value
@@ -146,7 +153,7 @@ def get_diffusion_coefficient(
     Warning
         Number of data points is small.
     """
-    # select data for fitting according from linear region
+    # select data for fitting according to linear region
     msd_data = data[data["time"] >= data["time"][firststep]]
     ndata = len(msd_data)
     if ndata < 2:
@@ -178,3 +185,121 @@ def get_diffusion_coefficient(
         raise ValueError("Molecule index must not be negative.")
 
     return diff_coeff, delta_diff_coeff, r2, ndata, k_hum, delta_k_hum
+
+
+def find_cond_region(data: pd.DataFrame, tskip: float, tol: float) -> tuple[int, int]:
+    """Find the linear region in the conductivity data.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Conductivity data
+    tskip : float
+        Amount of data to skip from the end
+    tol : float
+        Tolerance for the slope of the linear region
+
+    Returns
+    -------
+    tuple[int, int]
+        First and last step of the linear region, not their indices
+    """
+
+    # use log-log plot to find linear region
+    lncond = np.log(np.abs(data.iloc[:, 1]))
+    lntime = np.log(data["time"])
+
+    # set initial values
+    int_list = []
+    ndata = len(lntime)
+    incr = 0.01
+
+    # determine the number of intervals to check
+    ninter = int((1 / tskip) * 2 - 1)
+
+    for n in range(ninter):
+        linear_region = True
+        t1 = ndata - int((n + 2) / 2 * ndata * tskip)
+        t2 = ndata - int(n / 2 * ndata * tskip) - 1
+        t0 = t2
+        while linear_region:
+            slope = (lncond[t1] - lncond[t2]) / (lntime[t1] - lntime[t2])
+            if np.abs(slope - 1.0) > tol:
+                # if the slope is not within tolerance, go to the next interval
+                linear_region = False
+            else:
+                # if the slope is within tolerance, append the interval to the list
+                int_list.append(
+                    [
+                        t1,
+                        t0,
+                        t0 - t1,
+                        np.abs(
+                            (lncond[t1] - lncond[t0]) / (lntime[t1] - lntime[t0]) - 1
+                        ),
+                    ]
+                )
+                # increase the interval by incr
+                t1 -= int(ndata * incr)
+                t2 = t1 + int(ndata * incr)
+
+    linreg_data = pd.DataFrame(int_list, columns=["t1", "t2", "npoints", "slope_abs"])
+
+    if len(linreg_data) > 1:
+        # identify the row where npoints is maximal.
+        # if several rows have the same value, take the one where the slope is closest to 1
+        linreg_final = linreg_data.sort_values(
+            ["npoints", "slope_abs"], ascending=[False, True]
+        ).iloc[[0]]
+        firststep, laststep = linreg_final["t1"].iloc[0], linreg_final["t2"].iloc[0]
+    elif len(linreg_data) == 1:
+        firststep, laststep = linreg_data["t1"].iloc[0], linreg_data["t2"].iloc[0]
+    else:
+        firststep, laststep = -1, -1
+
+    return firststep, laststep
+
+
+def get_conductivity(
+    data: pd.DataFrame, firststep: int, laststep: int
+) -> tuple[float, float, float]:
+    """Calculate the ionic conductivity.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Conductivity data
+    firststep : int
+        First step of the linear region, not its index
+    laststep : int
+        Last step of the linear region, not its index
+
+    Returns
+    -------
+    tuple[float, float, float]
+        Ionic conductivity and its standard error in S/m, as well as the rsquared value
+    """
+
+    # select data for fitting according to linear region
+    cond_data = data[
+        (data["time"] >= data["time"][firststep])
+        & (data["time"] <= data["time"][laststep])
+    ]
+    # print(cond_data.tail())
+    ndata = len(cond_data)
+    if ndata < 2:
+        raise ValueError("Not enough data points for linear regression.")
+    elif ndata < 100:
+        raise Warning("Small number of data points.")
+
+    # initial guess to improve the fit
+    init = lmod.guess(data=cond_data.iloc[:, 1], x=cond_data["time"])
+    # perform the fit
+    out = lmod.fit(data=cond_data.iloc[:, 1], x=cond_data["time"], params=init)
+
+    # results
+    cond = out.best_values["slope"]
+    delta_cond = out.params["slope"].stderr
+    r2 = 1 - out.residual.var() / np.var(cond_data.iloc[:, 1])  # type: ignore
+
+    return cond, delta_cond, r2
