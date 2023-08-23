@@ -42,6 +42,15 @@ def conductivity(args: argparse.Namespace) -> int:
         ],
     )
 
+    data["anion_complete"] = data["anion_self"] + data["anion_cross"]
+    data["cation_complete"] = data["cation_self"] + data["cation_cross"]
+
+    # drop old anions and cations columns
+    data = data.drop(
+        columns=["anion_self", "cation_self", "anion_cross", "cation_cross"]
+    )
+    # sort columns as anion, cation, anion_cation, total
+
     for i, data_set in enumerate(data.columns[1:]):
         # select data for one molecule
         cond_data = data[["time", data_set]]
@@ -66,7 +75,7 @@ def conductivity(args: argparse.Namespace) -> int:
             r2 = 0.0
 
         print(
-            f"{data_set}:\t {laststep-firststep}, {cond:.4f} +- {delta_cond:.4f} S/m, r2 = {r2:.4f}"
+            f"{data_set}:\t {laststep}, {firststep}, {cond:.4f} +- {delta_cond:.4f} S/m, r2 = {r2:.4f}"
         )
 
     return 0
