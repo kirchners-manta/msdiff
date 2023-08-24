@@ -8,6 +8,7 @@ import argparse
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 from ..functions import find_cond_region, get_conductivity
 from .output import print_results_to_file, print_results_to_stdout
@@ -38,19 +39,34 @@ def conductivity(args: argparse.Namespace) -> int:
             "anion_cross",
             "cation_cross",
             "anion_cation",
-            "total",
+            "total_eh",
         ],
     )
 
-    data["anion"] = data["anion_self"] + data["anion_cross"]
-    data["cation"] = data["cation_self"] + data["cation_cross"]
+    data["anion_tot"] = data["anion_self"] + data["anion_cross"]
+    data["cation_tot"] = data["cation_self"] + data["cation_cross"]
+    data["total_ne"] = data["anion_self"] + data["cation_self"]
 
     # drop old anions and cations columns
     data = data.drop(
-        columns=["anion_self", "cation_self", "anion_cross", "cation_cross"]
+        columns=[
+            "anion_cross",
+            "cation_cross",
+        ]
     )
     # sort columns as anion, cation, anion_cation, total
-    data = data[["time", "anion", "cation", "anion_cation", "total"]]
+    data = data[
+        [
+            "time",
+            "anion_self",
+            "anion_tot",
+            "cation_self",
+            "cation_tot",
+            "anion_cation",
+            "total_ne",
+            "total_eh",
+        ]
+    ]
 
     result_list = []
     for i, data_set in enumerate(data.columns[1:]):
@@ -99,7 +115,69 @@ def conductivity(args: argparse.Namespace) -> int:
         ],
     )
 
-    print_results_to_stdout(results)
+    # get the index of the total_eh and total_ne columns
+    total_eh_ind = results.index[results["Contribution"] == "total_eh"][0]
+    total_ne_ind = results.index[results["Contribution"] == "total_ne"][0]
+    cat_self_ind = results.index[results["Contribution"] == "cation_self"][0]
+    an_self_ind = results.index[results["Contribution"] == "anion_self"][0]
+
+    # calculate a posteriori quantities
+    ionicity = results.loc[total_eh_ind, "sigma"] / results.loc[total_ne_ind, "sigma"]
+    delta_ionicity = np.sqrt(
+        (results.loc[total_eh_ind, "delta_sigma"] / results.loc[total_ne_ind, "sigma"])
+        ** 2
+        + (
+            results.loc[total_eh_ind, "sigma"]
+            * results.loc[total_ne_ind, "delta_sigma"]
+            / results.loc[total_ne_ind, "sigma"] ** 2
+        )
+        ** 2
+    )
+    t_self_cat = results.loc[cat_self_ind, "sigma"] / results.loc[total_ne_ind, "sigma"]
+    delta_t_self_cat = np.sqrt(
+        (results.loc[cat_self_ind, "delta_sigma"] / results.loc[total_ne_ind, "sigma"])
+        ** 2
+        + (
+            results.loc[cat_self_ind, "sigma"]
+            * results.loc[total_ne_ind, "delta_sigma"]
+            / results.loc[total_ne_ind, "sigma"] ** 2
+        )
+        ** 2
+    )
+    t_self_an = results.loc[an_self_ind, "sigma"] / results.loc[total_ne_ind, "sigma"]
+    delta_t_self_an = np.sqrt(
+        (results.loc[an_self_ind, "delta_sigma"] / results.loc[total_ne_ind, "sigma"])
+        ** 2
+        + (
+            results.loc[an_self_ind, "sigma"]
+            * results.loc[total_ne_ind, "delta_sigma"]
+            / results.loc[total_ne_ind, "sigma"] ** 2
+        )
+        ** 2
+    )
+    # put the a posteriori quantities to a new data frame
+    a_posteriori = pd.DataFrame(
+        data=[
+            [
+                ionicity,
+                delta_ionicity,
+                t_self_cat,
+                delta_t_self_cat,
+                t_self_an,
+                delta_t_self_an,
+            ]
+        ],
+        columns=[
+            "ionicity",
+            "delta_ionicity",
+            "t_self_cat",
+            "delta_t_self_cat",
+            "t_self_an",
+            "delta_t_self_an",
+        ],
+    )
+
+    print_results_to_stdout(results, a_posteriori)
 
     # Rename columns for proper output
     results = results.rename(
@@ -111,6 +189,6 @@ def conductivity(args: argparse.Namespace) -> int:
             "n_data": "n_data_fit",
         }
     )
-    print_results_to_file(results, args.output)
+    print_results_to_file(results, a_posteriori, args.output)
 
     return 0

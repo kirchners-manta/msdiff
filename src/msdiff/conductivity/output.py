@@ -10,6 +10,7 @@ from pathlib import Path
 
 def print_results_to_stdout(
     results: pd.DataFrame,
+    a_posteriori: pd.DataFrame,
 ) -> None:
     print("  \033[1mMSDiff Conductivity\033[0m")
     print("  ===================")
@@ -17,14 +18,29 @@ def print_results_to_stdout(
     # print the results per row
     for i, row in results.iterrows():
         print(
-            f"{row['Contribution']:<13}:  {row['sigma']:.4f} +- {row['delta_sigma']:.4f} S/m"
+            f"{row['Contribution']:<15}:  {row['sigma']:.4f} +- {row['delta_sigma']:.4f} S/m"
         )
+        # for debugging
+        # print(
+        #     f"{row['Contribution']:<15}:  {row['sigma']:.4f} +- {row['delta_sigma']:.4f} S/m, {row['t_start']:.2f} - {row['t_end']:.2f} ps, {row['n_data']} data points"
+        # )
+    print(f"\nA posteriori quantities")
+    for i, col in enumerate(a_posteriori.columns):
+        if i % 2 == 0:
+            print(
+                f"{col:<15}:  {a_posteriori.iloc[0, i]:.4f} +- {a_posteriori.iloc[0, i+1]:.4f}"
+            )
 
 
 def print_results_to_file(
     results: pd.DataFrame,
+    a_porsteriori: pd.DataFrame,
     output_file: str | Path,
 ) -> None:
-    # write msdiff_mols.csv to same directory as output_file
+    # write other results to same directory as output_file
+    out_posteriori = Path(output_file).parent / "msdiff_post.csv"
+
     results.to_csv(output_file, sep=",", index=False)
     print(f"\nResults written to {output_file}")
+    a_porsteriori.to_csv(out_posteriori, sep=",", index=False)
+    print(f"A posteriori quantities written to {out_posteriori}")
