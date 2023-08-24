@@ -262,7 +262,7 @@ def find_cond_region(data: pd.DataFrame, tskip: float, tol: float) -> tuple[int,
 
 def get_conductivity(
     data: pd.DataFrame, firststep: int, laststep: int
-) -> tuple[float, float, float]:
+) -> tuple[float, float, float, int]:
     """Calculate the ionic conductivity.
 
     Parameters
@@ -277,7 +277,7 @@ def get_conductivity(
     Returns
     -------
     tuple[float, float, float]
-        Ionic conductivity and its standard error in S/m, as well as the rsquared value
+        Ionic conductivity and its standard error in S/m, as well as the rsquared value and the number of data points
     """
 
     # select data for fitting according to linear region
@@ -302,4 +302,4 @@ def get_conductivity(
     delta_cond = out.params["slope"].stderr
     r2 = 1 - out.residual.var() / np.var(cond_data.iloc[:, 1])  # type: ignore
 
-    return cond, delta_cond, r2
+    return cond, delta_cond, r2, ndata

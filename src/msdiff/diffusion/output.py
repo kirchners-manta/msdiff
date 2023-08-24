@@ -1,5 +1,5 @@
 """
-Print functions for msdiff
+Print functions for msdiff, diffusion coefficient
 """
 
 from __future__ import annotations
@@ -28,8 +28,8 @@ def print_results_to_stdout(
         Standard error of the average diffusion coefficient in 10^-12 m^2/s
     """
 
-    print("  \033[1mMSDiff results\033[0m")
-    print("  ==============")
+    print("  \033[1mMSDiff Diffusion\033[0m")
+    print("  ===================")
     print(f"Analyzed {nmols} data sets:")
 
     print(
