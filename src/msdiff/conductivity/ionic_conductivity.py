@@ -120,9 +120,12 @@ def conductivity(args: argparse.Namespace) -> int:
     total_ne_ind = results.index[results["Contribution"] == "total_ne"][0]
     cat_self_ind = results.index[results["Contribution"] == "cation_self"][0]
     an_self_ind = results.index[results["Contribution"] == "anion_self"][0]
+    cat_tot_ind = results.index[results["Contribution"] == "cation_tot"][0]
+    an_tot_ind = results.index[results["Contribution"] == "anion_tot"][0]
 
     # calculate a posteriori quantities
     ionicity = results.loc[total_eh_ind, "sigma"] / results.loc[total_ne_ind, "sigma"]
+
     delta_ionicity = np.sqrt(
         (results.loc[total_eh_ind, "delta_sigma"] / results.loc[total_ne_ind, "sigma"])
         ** 2
@@ -133,18 +136,27 @@ def conductivity(args: argparse.Namespace) -> int:
         )
         ** 2
     )
-    t_self_cat = results.loc[cat_self_ind, "sigma"] / results.loc[total_ne_ind, "sigma"]
-    delta_t_self_cat = np.sqrt(
-        (results.loc[cat_self_ind, "delta_sigma"] / results.loc[total_ne_ind, "sigma"])
-        ** 2
-        + (
-            results.loc[cat_self_ind, "sigma"]
-            * results.loc[total_ne_ind, "delta_sigma"]
-            / results.loc[total_ne_ind, "sigma"] ** 2
-        )
-        ** 2
+
+    sigma_an_cross = (
+        results.loc[an_tot_ind, "sigma"] - results.loc[an_self_ind, "sigma"]
     )
+
+    delta_sigma_an_cross = np.sqrt(
+        results.loc[an_tot_ind, "delta_sigma"] ** 2
+        + results.loc[an_self_ind, "delta_sigma"] ** 2
+    )
+
+    sigma_cat_cross = (
+        results.loc[cat_tot_ind, "sigma"] - results.loc[cat_self_ind, "sigma"]
+    )
+
+    delta_sigma_cat_cross = np.sqrt(
+        results.loc[cat_tot_ind, "delta_sigma"] ** 2
+        + results.loc[cat_self_ind, "delta_sigma"] ** 2
+    )
+
     t_self_an = results.loc[an_self_ind, "sigma"] / results.loc[total_ne_ind, "sigma"]
+
     delta_t_self_an = np.sqrt(
         (results.loc[an_self_ind, "delta_sigma"] / results.loc[total_ne_ind, "sigma"])
         ** 2
@@ -155,25 +167,81 @@ def conductivity(args: argparse.Namespace) -> int:
         )
         ** 2
     )
+
+    t_self_cat = results.loc[cat_self_ind, "sigma"] / results.loc[total_ne_ind, "sigma"]
+
+    delta_t_self_cat = np.sqrt(
+        (results.loc[cat_self_ind, "delta_sigma"] / results.loc[total_ne_ind, "sigma"])
+        ** 2
+        + (
+            results.loc[cat_self_ind, "sigma"]
+            * results.loc[total_ne_ind, "delta_sigma"]
+            / results.loc[total_ne_ind, "sigma"] ** 2
+        )
+        ** 2
+    )
+
+    t_an = results.loc[an_tot_ind, "sigma"] / results.loc[total_eh_ind, "sigma"]
+
+    delta_t_an = np.sqrt(
+        (results.loc[an_tot_ind, "delta_sigma"] / results.loc[total_eh_ind, "sigma"])
+        ** 2
+        + (
+            results.loc[an_tot_ind, "sigma"]
+            * results.loc[total_eh_ind, "delta_sigma"]
+            / results.loc[total_eh_ind, "sigma"] ** 2
+        )
+        ** 2
+    )
+
+    t_cat = results.loc[cat_tot_ind, "sigma"] / results.loc[total_eh_ind, "sigma"]
+
+    delta_t_cat = np.sqrt(
+        (results.loc[cat_tot_ind, "delta_sigma"] / results.loc[total_eh_ind, "sigma"])
+        ** 2
+        + (
+            results.loc[cat_tot_ind, "sigma"]
+            * results.loc[total_eh_ind, "delta_sigma"]
+            / results.loc[total_eh_ind, "sigma"] ** 2
+        )
+        ** 2
+    )
+
     # put the a posteriori quantities to a new data frame
     a_posteriori = pd.DataFrame(
         data=[
             [
                 ionicity,
                 delta_ionicity,
-                t_self_cat,
-                delta_t_self_cat,
+                sigma_an_cross,
+                delta_sigma_an_cross,
+                sigma_cat_cross,
+                delta_sigma_cat_cross,
                 t_self_an,
                 delta_t_self_an,
+                t_self_cat,
+                delta_t_self_cat,
+                t_an,
+                delta_t_an,
+                t_cat,
+                delta_t_cat,
             ]
         ],
         columns=[
             "ionicity",
             "delta_ionicity",
-            "t_self_cat",
-            "delta_t_self_cat",
+            "sigma_an_cross",
+            "delta_sigma_an_cross",
+            "sigma_cat_cross",
+            "delta_sigma_cat_cross",
             "t_self_an",
             "delta_t_self_an",
+            "t_self_cat",
+            "delta_t_self_cat",
+            "t_an",
+            "delta_t_an",
+            "t_cat",
+            "delta_t_cat",
         ],
     )
 

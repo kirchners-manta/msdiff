@@ -27,9 +27,14 @@ def print_results_to_stdout(
     print(f"\nA posteriori quantities")
     for i, col in enumerate(a_posteriori.columns):
         if i % 2 == 0:
-            print(
-                f"{col:<15}:  {a_posteriori.iloc[0, i]:.4f} +- {a_posteriori.iloc[0, i+1]:.4f}"
-            )
+            if col == "sigma_an_cross" or col == "sigma_cat_cross":
+                print(
+                    f"{col:<15}:  {a_posteriori.iloc[0, i]:.4f} +- {a_posteriori.iloc[0, i+1]:.4f} S/m"
+                )
+            else:
+                print(
+                    f"{col:<15}:  {a_posteriori.iloc[0, i]:.4f} +- {a_posteriori.iloc[0, i+1]:.4f}"
+                )
 
 
 def print_results_to_file(
