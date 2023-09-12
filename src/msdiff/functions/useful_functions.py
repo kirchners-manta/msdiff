@@ -208,6 +208,7 @@ def find_cond_region(data: pd.DataFrame, tskip: float, tol: float) -> tuple[int,
     # use log-log plot to find linear region
     lncond = np.log(np.abs(data.iloc[:, 1]))
     lntime = np.log(data["time"])
+    print(data.columns)
 
     # set initial values
     int_list = []
@@ -224,7 +225,11 @@ def find_cond_region(data: pd.DataFrame, tskip: float, tol: float) -> tuple[int,
         t0 = t2
         while linear_region:
             slope = (lncond[t1] - lncond[t2]) / (lntime[t1] - lntime[t2])
-            if np.abs(slope - 1.0) > tol:
+            print(t1, t2, slope)
+            # if the slope is nan, exit the loop
+            if np.isnan(slope):
+                break
+            elif np.abs(slope - 1.0) > tol:
                 # if the slope is not within tolerance, go to the next interval
                 linear_region = False
             else:

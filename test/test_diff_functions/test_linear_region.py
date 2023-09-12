@@ -9,7 +9,13 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from msdiff import calc_Hummer_correction, find_linear_region, get_diffusion_coefficient
+from msdiff import (
+    calc_Hummer_correction,
+    find_linear_region,
+    get_diffusion_coefficient,
+    find_cond_region,
+    get_conductivity,
+)
 
 
 @pytest.mark.parametrize(
@@ -46,6 +52,46 @@ def test_find_linear_region(
     firststep: int,
 ) -> None:
     assert firststep == find_linear_region(msd_file, mol_index, tol)
+
+
+@pytest.mark.parametrize(
+    "msd_file, mol_index, tol",
+    [
+        (
+            pd.DataFrame(
+                {
+                    "time": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                    "msd_1": [
+                        1,
+                        4,
+                        9,
+                        16,
+                        25,
+                        36,
+                        49,
+                        64,
+                        81,
+                        100,
+                        121,
+                        144,
+                        169,
+                        196,
+                        225,
+                    ],
+                }
+            ),
+            0,
+            0.05,
+        )
+    ],
+)
+def test_no_lin_reg_found(
+    msd_file: pd.DataFrame,
+    mol_index: int,
+    tol: float,
+) -> None:
+    with pytest.raises(ValueError):
+        find_linear_region(msd_file, mol_index, tol)
 
 
 @pytest.mark.parametrize(
@@ -160,3 +206,44 @@ def test_neg_mol_index() -> None:
     )
     with pytest.raises(ValueError):
         get_diffusion_coefficient(msd_file, -4, 300, 201, 0.007, 5000, 0.0001)
+
+
+@pytest.mark.parametrize(
+    "cond_data, tskip, tol, firststep, laststep",
+    [
+        (
+            pd.DataFrame(
+                {
+                    "time": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                    "cond": [
+                        1,
+                        4,
+                        9,
+                        16,
+                        25,
+                        36,
+                        49,
+                        64,
+                        81,
+                        100,
+                        121,
+                        144,
+                        169,
+                        196,
+                        225,
+                    ],
+                }
+            ),
+            0.1,
+            0.1,
+            -1,
+            -1,
+        )
+    ],
+)
+def test_no_cond_region(
+    cond_data: pd.DataFrame, tskip: float, tol: float, firststep: int, laststep: int
+) -> None:
+    """Test if the linear region is found in the conductivity data."""
+
+    assert find_cond_region(cond_data, tskip, tol) == (-1, -1)

@@ -52,6 +52,11 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
                         args.length = float(line.split()[2])
         else:
             raise FileNotFoundError("travis.log not found.")
+
+    # if length is not given, raise error
+    if args.length is None:
+        raise ValueError("Box length not given.")
+
     # initialize list for results
     result_list = []
 

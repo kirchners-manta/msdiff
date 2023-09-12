@@ -19,11 +19,14 @@ def test_defaults() -> None:
     example_file = Path(__file__).parent / "data" / "example.csv"
     parser = argparser.parser()
     args = parser.parse_args(
-        f"-l 1234 -f {example_file}".split()
+        f"-f {example_file}".split()
     )  # add split because, the flags have to be given as arguments as well
 
     assert isinstance(args.from_travis, bool)
     assert args.from_travis == False
+
+    assert isinstance(args.length, type(None))
+    assert args.length == None
 
     assert isinstance(args.output, str)
     assert args.output == "msdiff_out.csv"
@@ -104,3 +107,15 @@ def test_no_travis_log() -> None:
             diffusion_coefficient(
                 parser.parse_args(f"-l 5000 -f {example_file} --from-travis".split())
             )
+
+
+def test_no_length() -> None:
+    """Test if the box length is given"""
+
+    example_file = Path(__file__).parent / "data" / "example.csv"
+
+    parser = argparser.parser()
+
+    with redirect_stderr(StringIO()):
+        with pytest.raises(ValueError):
+            diffusion_coefficient(parser.parse_args(f"-f {example_file}".split()))

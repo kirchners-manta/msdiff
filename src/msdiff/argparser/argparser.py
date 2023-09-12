@@ -219,16 +219,6 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         help="R|Show this help message and exit.",
     )
     p.add_argument(
-        "-l",
-        "--len",
-        type=float,
-        metavar="LENGTH",
-        dest="length",
-        help="R|Length of the cubic box in pm.",
-        action=action_not_less_than(500.0),
-        required=True,
-    )
-    p.add_argument(
         "-f",
         "--file",
         type=is_file,
@@ -260,6 +250,16 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         dest="from_travis",
         help="R|If the input file is an MSD from TRAVIS in the lmp format, the box length can be read from the 'travis.log' file.",
         default=False,
+    )
+    p.add_argument(
+        "-l",
+        "--len",
+        type=float,
+        metavar="LENGTH",
+        dest="length",
+        help="R|Length of the cubic box in pm.",
+        action=action_not_less_than(500.0),
+        default=None,
     )
     p.add_argument(
         "-o",
