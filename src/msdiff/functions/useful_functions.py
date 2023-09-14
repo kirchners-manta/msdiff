@@ -225,7 +225,6 @@ def find_cond_region(data: pd.DataFrame, tskip: float, tol: float) -> tuple[int,
         t0 = t2
         while linear_region:
             slope = (lncond[t1] - lncond[t2]) / (lntime[t1] - lntime[t2])
-            print(t1, t2, slope)
             # if the slope is nan, exit the loop
             if np.isnan(slope):
                 break
@@ -284,13 +283,11 @@ def get_conductivity(
     tuple[float, float, float]
         Ionic conductivity and its standard error in S/m, as well as the rsquared value and the number of data points
     """
-
     # select data for fitting according to linear region
     cond_data = data[
         (data["time"] >= data["time"][firststep])
         & (data["time"] <= data["time"][laststep])
     ]
-    # print(cond_data.tail())
     ndata = len(cond_data)
     if ndata < 2:
         raise ValueError("Not enough data points for linear regression.")

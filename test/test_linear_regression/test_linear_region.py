@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -60,24 +61,8 @@ def test_find_linear_region(
         (
             pd.DataFrame(
                 {
-                    "time": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-                    "msd_1": [
-                        1,
-                        4,
-                        9,
-                        16,
-                        25,
-                        36,
-                        49,
-                        64,
-                        81,
-                        100,
-                        121,
-                        144,
-                        169,
-                        196,
-                        225,
-                    ],
+                    "time": np.arange(1, 16),
+                    "msd_1": np.arange(1, 16) ** 2,
                 }
             ),
             0,
@@ -214,24 +199,8 @@ def test_neg_mol_index() -> None:
         (
             pd.DataFrame(
                 {
-                    "time": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-                    "cond": [
-                        1,
-                        4,
-                        9,
-                        16,
-                        25,
-                        36,
-                        49,
-                        64,
-                        81,
-                        100,
-                        121,
-                        144,
-                        169,
-                        196,
-                        225,
-                    ],
+                    "time": np.arange(10, 10000, 10),
+                    "cond": np.arange(10, 10000, 10) ** 2,
                 }
             ),
             0.1,
@@ -246,4 +215,36 @@ def test_no_cond_region(
 ) -> None:
     """Test if the linear region is found in the conductivity data."""
 
-    assert find_cond_region(cond_data, tskip, tol) == (-1, -1)
+    assert find_cond_region(cond_data, tskip, tol) == (firststep, laststep)
+
+
+# @pytest.mark.parametrize(
+#     "cond_data, firststep, laststep",
+#     [
+#         (
+#             pd.read_csv(
+#                 Path(__file__).parent / "data" / "conductivity_test_data.csv",
+#                 sep=";",
+#                 usecols=[0, 1],
+#                 names=["time", "cond"],
+#                 skiprows=1,
+#             ),
+#             3,
+#             100,
+#         )
+#     ],
+# )
+def test_cond_region_small() -> None:
+    """Test if the linear region in the conductivity data is small."""
+
+    cond_data = pd.read_csv(
+        Path(__file__).parent / "data" / "conductivity_test_data.csv",
+        sep=";",
+        usecols=[0, 1],
+        names=["time", "cond"],
+        skiprows=1,
+    )
+    with pytest.raises(Warning):
+        get_conductivity(cond_data, 10, 100)
+    with pytest.raises(ValueError):
+        get_conductivity(cond_data, 10, 10)
