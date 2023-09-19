@@ -208,7 +208,6 @@ def find_cond_region(data: pd.DataFrame, tskip: float, tol: float) -> tuple[int,
     # use log-log plot to find linear region
     lncond = np.log(np.abs(data.iloc[:, 1]))
     lntime = np.log(data["time"])
-    print(data.columns)
 
     # set initial values
     int_list = []
