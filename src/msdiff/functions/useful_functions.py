@@ -31,6 +31,9 @@ def find_linear_region(data: pd.DataFrame, mol_index: int, tol: float) -> int:
     # drop first data point to avoid zero
     lnMSD = np.log(data[f"msd_{mol_index+1}"][1:])
     lntime = np.log(data["time"][1:])
+    # drop last 10% of data points to avoid noise
+    lntime = lntime[: int(0.9 * len(lntime))]
+    lnMSD = lnMSD[: int(0.9 * len(lnMSD))]
 
     # set initial values
     linear_region = True
