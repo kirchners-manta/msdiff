@@ -40,6 +40,7 @@ def conductivity(args: argparse.Namespace) -> int:
             "cation_cross",
             "anion_cation",
             "total_eh",
+            " ",
         ],
     )
 
@@ -52,6 +53,7 @@ def conductivity(args: argparse.Namespace) -> int:
         columns=[
             "anion_cross",
             "cation_cross",
+            " ",
         ]
     )
     # sort columns as anion, cation, anion_cation, total

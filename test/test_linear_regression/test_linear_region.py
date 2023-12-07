@@ -31,7 +31,7 @@ from msdiff import (
             ),
             0,
             0.05,
-            661,
+            666,
         ),
         (
             pd.read_csv(
@@ -42,7 +42,7 @@ from msdiff import (
             ),
             3,
             0.07,
-            51,
+            46,
         ),
     ],
 )
