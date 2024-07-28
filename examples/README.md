@@ -4,7 +4,7 @@ This directory contains example files and their expected results.
 
 ## Example 1
 
-In [ntf2](./ntf2/), there is an [output file](./ntf2/msd_C2F6NO4S2_#2.csv) from a TRAVIS MSD calculation of a system of [EMIM][NTF2] at 350 K. 
+In [ntf2](./ntf2/), there is an [output file](./ntf2/msd_from_travis.csv) from a TRAVIS MSD calculation of a system of [EMIM][NTF2] at 350 K. 
 The corresponding box length is 6134.48 pm.
 The program is run with the following command:
 

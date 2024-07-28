@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from typing import Any, Dict, Sequence, Type
 
 from .. import __version__
 
@@ -48,7 +49,7 @@ def is_dir(path: str | Path) -> str | Path:
 
 
 # custom actions
-def action_not_less_than(min_value: float = 0.0):
+def action_not_less_than(min_value: float = 0.0) -> Type[argparse.Action]:
     class CustomActionLessThan(argparse.Action):
         """
         Custom action for limiting possible input values. Raise error if value is smaller than min_value.
@@ -58,11 +59,17 @@ def action_not_less_than(min_value: float = 0.0):
             self,
             p: argparse.ArgumentParser,
             args: argparse.Namespace,
-            values: list[float | int] | float | int,
+            values: str | Sequence[Any] | None,
             option_string: str | None = None,
         ) -> None:
-            if isinstance(values, (int, float)):
+            if isinstance(values, str):
+                values = [float(values)]
+            elif isinstance(values, (int, float)):
                 values = [values]
+            elif values is None:
+                values = []
+            else:
+                values = [float(v) for v in values]
 
             if any(value < min_value for value in values):
                 p.error(
@@ -77,7 +84,7 @@ def action_not_less_than(min_value: float = 0.0):
     return CustomActionLessThan
 
 
-def action_not_more_than(max_value: float = 0.0):
+def action_not_more_than(max_value: float = 0.0) -> Type[argparse.Action]:
     class CustomActionMoreThan(argparse.Action):
         """
         Custom action for limiting possible input values. Raise error if value is larger than max_value.
@@ -87,11 +94,17 @@ def action_not_more_than(max_value: float = 0.0):
             self,
             p: argparse.ArgumentParser,
             args: argparse.Namespace,
-            values: list[float | int] | float | int,
+            values: str | Sequence[Any] | None,
             option_string: str | None = None,
         ) -> None:
-            if isinstance(values, (int, float)):
+            if isinstance(values, str):
+                values = [float(values)]
+            elif isinstance(values, (int, float)):
                 values = [values]
+            elif values is None:
+                values = []
+            else:
+                values = [float(v) for v in values]
 
             if any(value > max_value for value in values):
                 p.error(
@@ -106,7 +119,9 @@ def action_not_more_than(max_value: float = 0.0):
     return CustomActionMoreThan
 
 
-def action_in_range(min_value: float = 0.0, max_value: float = 1.0):
+def action_in_range(
+    min_value: float = 0.0, max_value: float = 1.0
+) -> Type[argparse.Action]:
     class CustomActionInRange(argparse.Action):
         """
         Custom action for limiting possible input values in a range. Raise error if value is not in range [min_value, max_value].
@@ -116,11 +131,17 @@ def action_in_range(min_value: float = 0.0, max_value: float = 1.0):
             self,
             p: argparse.ArgumentParser,
             args: argparse.Namespace,
-            values: list[float | int] | float | int,
+            values: str | Sequence[Any] | None,
             option_string: str | None = None,
         ) -> None:
-            if isinstance(values, (int, float)):
+            if isinstance(values, str):
+                values = [float(values)]
+            elif isinstance(values, (int, float)):
                 values = [values]
+            elif values is None:
+                values = []
+            else:
+                values = [float(v) for v in values]
 
             if any(value < min_value or value > max_value for value in values):
                 p.error(
@@ -193,7 +214,7 @@ class Formatter(argparse.HelpFormatter):
 
 
 # custom parser
-def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
+def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
     """
     Parses the command line arguments.
 
@@ -248,7 +269,7 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         "--from-travis",
         action="store_true",
         dest="from_travis",
-        help="R|If the input file is an MSD from TRAVIS in the lmp format, the box length can be read from the 'travis.log' file.",
+        help="R|If the input file is an MSD from TRAVIS in the lmp format,\nthe box length can be read from the 'travis.log' file.",
         default=False,
     )
     p.add_argument(
@@ -260,6 +281,16 @@ def parser(name: str = "msdiff", **kwargs) -> argparse.ArgumentParser:
         help="R|Length of the cubic box in pm.",
         action=action_not_less_than(500.0),
         default=None,
+    )
+    p.add_argument(
+        "-n",
+        "--ndim",
+        type=int,
+        metavar="DIMENSIONS",
+        dest="dimensions",
+        help="R|Number of dimensions, the diffusion coefficient should be calculated for.",
+        default=3,
+        choices=[1, 2, 3],
     )
     p.add_argument(
         "-o",

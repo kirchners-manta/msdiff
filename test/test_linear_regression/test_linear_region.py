@@ -101,7 +101,7 @@ def test_calc_Hummer_correction(
 
 
 @pytest.mark.parametrize(
-    "msd_file, mol_index, firststep, temp, viscosity, box_length, delta_viscosity, diff_coeff, delta_diff_coeff, r2, npoints_fit, k_hummer, delta_k_hummer",
+    "msd_file, mol_index, firststep, ndim, temp, viscosity, box_length, delta_viscosity, diff_coeff, delta_diff_coeff, r2, npoints_fit, k_hummer, delta_k_hummer",
     [
         (
             pd.read_csv(
@@ -112,6 +112,7 @@ def test_calc_Hummer_correction(
             ),
             0,
             661,
+            3,
             298.15,
             0.00787,
             1234,
@@ -132,6 +133,7 @@ def test_calc_Hummer_correction(
             ),
             2,
             71,
+            3,
             350,
             0.5,
             10000,
@@ -149,6 +151,7 @@ def test_perform_linear_regression(
     msd_file: pd.DataFrame,
     mol_index: int,
     firststep: int,
+    ndim: int,
     temp: float,
     viscosity: float,
     box_length: float,
@@ -161,7 +164,14 @@ def test_perform_linear_regression(
     delta_k_hummer: float | None,
 ) -> None:
     assert get_diffusion_coefficient(
-        msd_file, mol_index, firststep, temp, viscosity, box_length, delta_viscosity
+        msd_file,
+        mol_index,
+        firststep,
+        ndim,
+        temp,
+        viscosity,
+        box_length,
+        delta_viscosity,
     ) == pytest.approx(
         (diff_coeff, delta_diff_coeff, r2, npoints_fit, k_hummer, delta_k_hummer)
     )
@@ -176,10 +186,10 @@ def test_fail_linear_regression() -> None:
         }
     )
     with pytest.raises(Warning):
-        get_diffusion_coefficient(msd_file, 0, 1, 201, 0.007, 5000, 0.0001)
+        get_diffusion_coefficient(msd_file, 0, 1, 3, 201, 0.007, 5000, 0.0001)
 
     with pytest.raises(ValueError):
-        get_diffusion_coefficient(msd_file, 0, 4, 201, 0.007, 5000, 0.0001)
+        get_diffusion_coefficient(msd_file, 0, 4, 3, 201, 0.007, 5000, 0.0001)
 
 
 def test_neg_mol_index() -> None:
@@ -190,7 +200,7 @@ def test_neg_mol_index() -> None:
         names=["time", "msd_-3", "derivative"],
     )
     with pytest.raises(ValueError):
-        get_diffusion_coefficient(msd_file, -4, 300, 201, 0.007, 5000, 0.0001)
+        get_diffusion_coefficient(msd_file, -4, 300, 3, 201, 0.007, 5000, 0.0001)
 
 
 @pytest.mark.parametrize(

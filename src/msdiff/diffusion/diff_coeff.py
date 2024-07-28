@@ -7,17 +7,15 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
+from typing import List, Union
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-from ..functions import (
-    find_linear_region,
-    get_diffusion_coefficient,
-)
-from ..plotting import generate_simple_plot
-from .output import print_results_to_file, print_results_to_stdout
+from ..functions import find_linear_region, get_diffusion_coefficient
 from .input import process_input
+from .output import print_results_to_file, print_results_to_stdout
+from ..plotting import generate_simple_plot
 
 
 def diffusion_coefficient(args: argparse.Namespace) -> int:
@@ -58,7 +56,7 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
         raise ValueError("Box length not given.")
 
     # initialize list for results
-    result_list = []
+    result_list: List[List[Union[int, float]]] = []
 
     # read data from file
     data, nmols = process_input(args.file)
@@ -84,6 +82,7 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
             mol_data,
             i,
             firststep,
+            args.dimensions,
             args.temperature,
             args.viscosity,
             args.length,
@@ -107,7 +106,7 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
                 mol_data["time"][firststep],
                 npoints_fit,
                 len(mol_data),
-            ]
+            ]  # type: ignore
         )
         results = pd.DataFrame(
             data=result_list,
@@ -167,6 +166,7 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
     print_results_to_file(results, results_avg, args.output)
 
     # generate a plot if requested
+    # currently not available
     # if args.plot:
     #     generate_simple_plot(data, firststep)  # pragma: no cover
 

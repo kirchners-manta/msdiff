@@ -1,6 +1,7 @@
 """
 Useful functions for the diffusion coefficient calculation.
 """
+
 from __future__ import annotations
 
 import lmfit
@@ -120,6 +121,7 @@ def get_diffusion_coefficient(
     data: pd.DataFrame,
     mol_index: int,
     firststep: int,
+    ndim: int,
     temp: float,
     viscosity: float,
     box_length: float,
@@ -135,6 +137,8 @@ def get_diffusion_coefficient(
         Index of the data set, i.e., the molecule
     firststep : int
         First step of the linear region, not its index
+    ndim : int
+        Number of dimensions
     temp : float
         Temperature in K
     viscosity : float
@@ -170,8 +174,8 @@ def get_diffusion_coefficient(
     out = lmod.fit(data=msd_data[f"msd_{mol_index+1}"], x=msd_data["time"], params=init)
 
     # results
-    diff_coeff = out.best_values["slope"] / 6
-    delta_diff_coeff = out.params["slope"].stderr / 6
+    diff_coeff = out.best_values["slope"] / (2 * ndim)
+    delta_diff_coeff = out.params["slope"].stderr / (2 * ndim)
     r2 = 1 - out.residual.var() / np.var(msd_data[f"msd_{mol_index+1}"])  # type: ignore
 
     if mol_index == 0:
