@@ -8,7 +8,7 @@
 [![code style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 This repository offers a tool to calculate the diffusion coefficient based on molecular dynamics simulations.
-The program takes the output of an MSD calculation by TRAVIS (or any other program, as long as the format fits, see below) and calculates the diffusion coefficient based on the slope of the mean square displacement.
+The program takes the output of an MSD calculation by TRAVIS (or any other program, as long as the format fits, see below) and calculates the diffusion coefficient and the ionic conductivity based on the slope of the mean square displacement.
 It is primarily designed for the [group of Barbara Kirchner](https://www.chemie.uni-bonn.de/kirchner/de/startseite) at the University of Bonn but open to everyone and published under the [MIT license](./LICENSE).
 
 ## Installation
@@ -16,7 +16,7 @@ It is primarily designed for the [group of Barbara Kirchner](https://www.chemie.
 The tool can be installed using `pip`:
 
 ```bash
-git clone git@github.com:tomfroembgen/msdiff.git
+git clone git@github.com:kirchners-manta/msdiff.git
 cd msdiff
 pip install .
 ```
