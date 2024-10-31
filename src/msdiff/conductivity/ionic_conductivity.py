@@ -7,10 +7,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd  # type: ignore
 
-from ..functions import find_cond_region, get_conductivity
+from ..functions import calc_transport_numbers, find_linear_region, linear_fit
 from .output import print_results_to_file, print_results_to_stdout
 
 
@@ -28,63 +28,126 @@ def conductivity(args: argparse.Namespace) -> int:
         Exit code of the program
     """
 
-    data = pd.read_csv(
-        args.file,
-        sep=";",
-        skiprows=1,
-        names=[
-            "time",
-            "anion_self",
-            "cation_self",
-            "anion_cross",
-            "cation_cross",
-            "anion_cation",
-            "total_eh",
-            " ",
-        ],
-    )
+    # read data from file
+    # if 'avg' option is true, the file contains the average values and the standard deviation
+    if args.avg:
+        data = pd.read_csv(
+            args.file,
+            sep=";",
+            skiprows=1,
+            names=[
+                "time",
+                "anion_self",
+                "anion_self_std",
+                "cation_self",
+                "cation_self_std",
+                "anion_cross",
+                "anion_cross_std",
+                "cation_cross",
+                "cation_cross_std",
+                "anion_cation",
+                "anion_cation_std",
+                "total_eh",
+                "total_eh_std",
+                " ",
+            ],
+        ).astype(float)
+    else:
+        data = pd.read_csv(
+            args.file,
+            sep=";",
+            skiprows=1,
+            names=[
+                "time",
+                "anion_self",
+                "cation_self",
+                "anion_cross",
+                "cation_cross",
+                "anion_cation",
+                "total_eh",
+                " ",
+            ],
+        ).astype(float)
 
+        # add standard deviation columns and set them to zero
+        data["anion_self_std"] = 0.0
+        data["cation_self_std"] = 0.0
+        data["anion_cross_std"] = 0.0
+        data["cation_cross_std"] = 0.0
+        data["anion_cation_std"] = 0.0
+        data["total_eh_std"] = 0.0
+
+    # calculate total anion and cation conductivity
     data["anion_tot"] = data["anion_self"] + data["anion_cross"]
-    data["cation_tot"] = data["cation_self"] + data["cation_cross"]
-    data["total_ne"] = data["anion_self"] + data["cation_self"]
-
-    # drop old anions and cations columns
-    data = data.drop(
-        columns=[
-            "anion_cross",
-            "cation_cross",
-            " ",
-        ]
+    data["anion_tot_std"] = np.sqrt(
+        data["anion_self_std"] ** 2 + data["anion_cross_std"] ** 2
     )
-    # sort columns as anion, cation, anion_cation, total
+    data["cation_tot"] = data["cation_self"] + data["cation_cross"]
+    data["cation_tot_std"] = np.sqrt(
+        data["cation_self_std"] ** 2 + data["cation_cross_std"] ** 2
+    )
+    data["total_ne"] = data["anion_self"] + data["cation_self"]
+    data["total_ne_std"] = np.sqrt(
+        data["anion_self_std"] ** 2 + data["cation_self_std"] ** 2
+    )
+
+    # sort columns
     data = data[
         [
             "time",
             "anion_self",
+            "anion_self_std",
+            "anion_cross",
+            "anion_cross_std",
             "anion_tot",
+            "anion_tot_std",
             "cation_self",
+            "cation_self_std",
+            "cation_cross",
+            "cation_cross_std",
             "cation_tot",
+            "cation_tot_std",
             "anion_cation",
+            "anion_cation_std",
             "total_ne",
+            "total_ne_std",
             "total_eh",
+            "total_eh_std",
         ]
     ]
 
+    # find linear region, based on EH conductivity
+    (firststep, laststep) = find_linear_region(
+        data[["time", "total_eh"]],
+        args.tolerance,
+        nslice=10,
+    )
+
+    # empty list to store the results
     result_list = []
-    for i, data_set in enumerate(data.columns[1:]):
+    # list of contributions
+    cols = [
+        "anion_self",
+        "anion_cross",
+        "anion_tot",
+        "cation_self",
+        "cation_cross",
+        "cation_tot",
+        "anion_cation",
+        "total_ne",
+        "total_eh",
+    ]
+
+    # loop over all contributions
+    for _, data_set in enumerate(cols):
         # select data for one molecule
-        cond_data = data[["time", data_set]]
-        # find linear region
-        (firststep, laststep) = find_cond_region(
-            cond_data,
-            tskip=0.10,
-            tol=0.1,
-        )
+        cond_data = data[["time", data_set, f"{data_set}_std"]]
+
         # calculate conductivity
         # if no linear region is found, the function is not called
         # and the results are set to zero
         if firststep != -1 and laststep != -1:
-            cond, delta_cond, r2, npoints_fit = get_conductivity(
+            cond, delta_cond, r2, npoints_fit = linear_fit(
                 cond_data,
                 firststep,
                 laststep,
@@ -94,9 +157,6 @@ def conductivity(args: argparse.Namespace) -> int:
             delta_cond = 0.0
             r2 = 0.0
             npoints_fit = 0
-        # print(
-        #     f"{data_set:<15} {firststep:<10} {laststep:<10} {cond:.4f} +- {delta_cond:.4f} S/m {f'r2 = {r2:.4f}':<10}"
-        # )
 
         # summarize results in a list
         result_list.append(
@@ -107,7 +167,7 @@ def conductivity(args: argparse.Namespace) -> int:
     results = pd.DataFrame(
         data=result_list,
         columns=[
-            "Contribution",
+            "contribution",
             "sigma",
             "delta_sigma",
             "r2",
@@ -115,136 +175,34 @@ def conductivity(args: argparse.Namespace) -> int:
             "t_end",
             "n_data",
         ],
+    ).astype(
+        {
+            "contribution": str,
+            "sigma": float,
+            "delta_sigma": float,
+            "r2": float,
+            "t_start": float,
+            "t_end": float,
+            "n_data": int,
+        }
     )
-
-    # get the index of the total_eh and total_ne columns
-    total_eh_ind = results.index[results["Contribution"] == "total_eh"][0]
-    total_ne_ind = results.index[results["Contribution"] == "total_ne"][0]
-    cat_self_ind = results.index[results["Contribution"] == "cation_self"][0]
-    an_self_ind = results.index[results["Contribution"] == "anion_self"][0]
-    cat_tot_ind = results.index[results["Contribution"] == "cation_tot"][0]
-    an_tot_ind = results.index[results["Contribution"] == "anion_tot"][0]
 
     # calculate a posteriori quantities
-    ionicity = results.loc[total_eh_ind, "sigma"] / results.loc[total_ne_ind, "sigma"]
+    a_posteriori = calc_transport_numbers(results)
 
-    delta_ionicity = np.sqrt(
-        (results.loc[total_eh_ind, "delta_sigma"] / results.loc[total_ne_ind, "sigma"])
-        ** 2
-        + (
-            results.loc[total_eh_ind, "sigma"]
-            * results.loc[total_ne_ind, "delta_sigma"]
-            / results.loc[total_ne_ind, "sigma"] ** 2
-        )
-        ** 2
-    )
-
-    sigma_an_cross = (
-        results.loc[an_tot_ind, "sigma"] - results.loc[an_self_ind, "sigma"]
-    )
-
-    delta_sigma_an_cross = np.sqrt(
-        results.loc[an_tot_ind, "delta_sigma"] ** 2
-        + results.loc[an_self_ind, "delta_sigma"] ** 2
-    )
-
-    sigma_cat_cross = (
-        results.loc[cat_tot_ind, "sigma"] - results.loc[cat_self_ind, "sigma"]
-    )
-
-    delta_sigma_cat_cross = np.sqrt(
-        results.loc[cat_tot_ind, "delta_sigma"] ** 2
-        + results.loc[cat_self_ind, "delta_sigma"] ** 2
-    )
-
-    t_self_an = results.loc[an_self_ind, "sigma"] / results.loc[total_ne_ind, "sigma"]
-
-    delta_t_self_an = np.sqrt(
-        (results.loc[an_self_ind, "delta_sigma"] / results.loc[total_ne_ind, "sigma"])
-        ** 2
-        + (
-            results.loc[an_self_ind, "sigma"]
-            * results.loc[total_ne_ind, "delta_sigma"]
-            / results.loc[total_ne_ind, "sigma"] ** 2
-        )
-        ** 2
-    )
-
-    t_self_cat = results.loc[cat_self_ind, "sigma"] / results.loc[total_ne_ind, "sigma"]
-
-    delta_t_self_cat = np.sqrt(
-        (results.loc[cat_self_ind, "delta_sigma"] / results.loc[total_ne_ind, "sigma"])
-        ** 2
-        + (
-            results.loc[cat_self_ind, "sigma"]
-            * results.loc[total_ne_ind, "delta_sigma"]
-            / results.loc[total_ne_ind, "sigma"] ** 2
-        )
-        ** 2
-    )
-
-    t_an = results.loc[an_tot_ind, "sigma"] / results.loc[total_eh_ind, "sigma"]
-
-    delta_t_an = np.sqrt(
-        (results.loc[an_tot_ind, "delta_sigma"] / results.loc[total_eh_ind, "sigma"])
-        ** 2
-        + (
-            results.loc[an_tot_ind, "sigma"]
-            * results.loc[total_eh_ind, "delta_sigma"]
-            / results.loc[total_eh_ind, "sigma"] ** 2
-        )
-        ** 2
-    )
-
-    t_cat = results.loc[cat_tot_ind, "sigma"] / results.loc[total_eh_ind, "sigma"]
-
-    delta_t_cat = np.sqrt(
-        (results.loc[cat_tot_ind, "delta_sigma"] / results.loc[total_eh_ind, "sigma"])
-        ** 2
-        + (
-            results.loc[cat_tot_ind, "sigma"]
-            * results.loc[total_eh_ind, "delta_sigma"]
-            / results.loc[total_eh_ind, "sigma"] ** 2
-        )
-        ** 2
-    )
-
-    # put the a posteriori quantities to a new data frame
-    a_posteriori = pd.DataFrame(
-        data=[
-            [
-                ionicity,
-                delta_ionicity,
-                sigma_an_cross,
-                delta_sigma_an_cross,
-                sigma_cat_cross,
-                delta_sigma_cat_cross,
-                t_self_an,
-                delta_t_self_an,
-                t_self_cat,
-                delta_t_self_cat,
-                t_an,
-                delta_t_an,
-                t_cat,
-                delta_t_cat,
-            ]
-        ],
-        columns=[
-            "ionicity",
-            "delta_ionicity",
-            "sigma_an_cross",
-            "delta_sigma_an_cross",
-            "sigma_cat_cross",
-            "delta_sigma_cat_cross",
-            "t_self_an",
-            "delta_t_self_an",
-            "t_self_cat",
-            "delta_t_self_cat",
-            "t_an",
-            "delta_t_an",
-            "t_cat",
-            "delta_t_cat",
-        ],
+    # rename contributions in results for proper output
+    results = results.replace(
+        {
+            "anion_self": "anion self",
+            "anion_cross": "anion cross",
+            "anion_tot": "anion total",
+            "cation_self": "cation self",
+            "cation_cross": "cation cross",
+            "cation_tot": "cation total",
+            "anion_cation": "anion-cation",
+            "total_ne": "total Nernst-Einstein",
+            "total_eh": "total Einstein-Helfand",
+        }
     )
 
     print_results_to_stdout(results, a_posteriori)
@@ -253,7 +211,7 @@ def conductivity(args: argparse.Namespace) -> int:
     results = results.rename(
         columns={
             "sigma": "sigma / S*m^-1",
-            "delta_sigma ": "delta_sigma / S*m^-1",
+            "delta_sigma": "delta_sigma / S*m^-1",
             "t_start": "t_start / ps",
             "t_end": "t_end / ps",
             "n_data": "n_data_fit",

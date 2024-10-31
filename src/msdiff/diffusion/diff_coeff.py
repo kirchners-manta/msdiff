@@ -1,5 +1,5 @@
 """
-Main script for msdiff.
+Main script for msdiff diffusion coefficient calculation.
 """
 
 from __future__ import annotations
@@ -10,12 +10,10 @@ from pathlib import Path
 from typing import List, Union
 
 import numpy as np
-import pandas as pd
+import pandas as pd  # type: ignore
 
-from ..functions import find_linear_region, get_diffusion_coefficient
-from .input import process_input
+from ..functions import calc_Hummer_correction, find_linear_region, linear_fit
 from .output import print_results_to_file, print_results_to_stdout
-from ..plotting import generate_simple_plot
 
 
 def diffusion_coefficient(args: argparse.Namespace) -> int:
@@ -39,7 +37,7 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
 
     # if 'from travis' option is true, check for the box length in travis output file
     if args.from_travis:
-        travis_path = Path(args.file).parent / "travis.log"  # type: ignore
+        travis_path = Path(args.file).parent / "travis.log"
         if os.path.isfile(travis_path):
             with open(travis_path, "r", encoding="utf8") as f:
                 for line in f:
@@ -55,119 +53,102 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
     if args.length is None:
         raise ValueError("Box length not given.")
 
-    # initialize list for results
-    result_list: List[List[Union[int, float]]] = []
-
     # read data from file
-    data, nmols = process_input(args.file)
+    if args.avg:
+        # if 'avg' option is true, the file contains the average values and the standard deviation
+        data = pd.read_csv(
+            args.file, sep=";", skiprows=1, names=["time", "msd", "msd_std"]
+        ).astype(float)
+    else:
+        # if 'avg' option is false, the file contains the MSD for a single molecule and the derivative (not needed), the default output of TRAVIS
+        data = pd.read_csv(
+            args.file, sep=";", skiprows=1, names=["time", "msd", "derivative"]
+        ).astype(float)
+        # drop the derivative column and add std column as zeros
+        data = data.drop(columns=["derivative"])
+        data["msd_std"] = 0.0
 
-    for i in range(nmols):
-        # select data for one molecule
-        mol_data = data[["time", f"msd_{i+1}"]]
+    # determine linear region
+    (firststep, laststep) = find_linear_region(data[["time", "msd"]], args.tolerance)
 
-        # identify the linear region
-        firststep = find_linear_region(mol_data, i, args.tolerance)
-        if firststep == -1:
-            raise ValueError("No linear region found.")
+    # perform linear regression in the linear region
+    (
+        diff,
+        delta_diff,
+        r2,
+        npoints_fit,
+    ) = linear_fit(
+        data,
+        firststep,
+        laststep,
+    )
+    # divide D and delta D by 2*dimensions
+    diff /= 2 * args.dimensions
+    delta_diff /= 2 * args.dimensions
 
-        # perform linear regression in the linear region
-        (
-            diff_coeff,
-            delta_diff_coeff,
-            rsquared,
-            npoints_fit,
+    # hummer correction
+    (k_hum, delta_k_hum) = calc_Hummer_correction(
+        args.temperature,
+        args.viscosity,
+        args.length,
+        args.delta_viscosity,
+    )
+
+    results_list = []
+
+    # summarize results to data frame
+    results_list.append(
+        [
+            diff,
+            delta_diff,
             k_hum,
             delta_k_hum,
-        ) = get_diffusion_coefficient(
-            mol_data,
-            i,
+            r2,
             firststep,
-            args.dimensions,
-            args.temperature,
-            args.viscosity,
-            args.length,
-            args.delta_viscosity,
-        )
+            laststep,
+            npoints_fit,
+        ]
+    )
+    results = pd.DataFrame(
+        data=results_list,
+        columns=[
+            "diff",
+            "delta_diff",
+            "k_hum",
+            "delta_k_hum",
+            "r2",
+            "t_start",
+            "t_end",
+            "n_data",
+        ],
+    ).astype(
+        {
+            "diff": float,
+            "delta_diff": float,
+            "k_hum": float,
+            "delta_k_hum": float,
+            "r2": float,
+            "t_start": float,
+            "t_end": float,
+            "n_data": int,
+        }
+    )
 
-        # if i > 0, the hummer correction is not calculated but copied from the first molecule
-        if i > 0:
-            k_hum = result_list[0][2]
-            delta_k_hum = result_list[0][3]
-
-        # summarize results to data frame
-        result_list.append(
-            [
-                i + 1,
-                diff_coeff,
-                delta_diff_coeff,
-                k_hum,
-                delta_k_hum,
-                rsquared,
-                mol_data["time"][firststep],
-                npoints_fit,
-                len(mol_data),
-            ]  # type: ignore
-        )
-        results = pd.DataFrame(
-            data=result_list,
-            columns=[
-                "Molecule",
-                "diff_coeff",
-                "delta_diff_coeff",
-                "k_hum",
-                "delta_k_hum",
-                "rsquared",
-                "fit_start",
-                "npoints_fit",
-                "npoints_data",
-            ],
-        )
-
-    # calculate average results
-    if nmols > 1:
-        avg_diff_coeff = results["diff_coeff"].mean()
-        delta_avg_diff_coeff = results["diff_coeff"].std() / np.sqrt(nmols)
-    elif nmols == 1:
-        avg_diff_coeff = results["diff_coeff"][0]
-        delta_avg_diff_coeff = results["delta_diff_coeff"][0]
-
-    print_results_to_stdout(results, nmols, avg_diff_coeff, delta_avg_diff_coeff)
+    print_results_to_stdout(results)
 
     # rename columns for file output
     results = results.rename(
         columns={
-            "diff_coeff": "D / 10^-12 m^2/s",
-            "delta_diff_coeff": "D_stderr / 10^-12 m^2/s",
+            "diff": "D / 10^-12 m^2/s",
+            "delta_diff": "D_stderr / 10^-12 m^2/s",
             "k_hum": "K / 10^-12 m^2/s",
             "delta_k_hum": "K_stddev / 10^-12 m^2/s",
-            "rsquared": "R^2",
-            "fit_start": "Fit start / ps",
-            "npoints_fit": "Npoints_fit",
-            "npoints_data": "Npoints_data",
+            "t_start": "t_start / ps",
+            "t_end": "t_end / ps",
+            "n_data": "n_data_fit",
         }
     )
-    results_avg = pd.DataFrame(
-        data=[
-            [
-                avg_diff_coeff,
-                delta_avg_diff_coeff,
-                results["K / 10^-12 m^2/s"][0],
-                results["K_stddev / 10^-12 m^2/s"][0],
-            ]
-        ],
-        columns=[
-            "D_avg / 10^-12 m^2/s",
-            "D_avg_stderr / 10^-12 m^2/s",
-            "K / 10^-12 m^2/s",
-            "K_stddev / 10^-12 m^2/s",
-        ],
-    )
 
-    print_results_to_file(results, results_avg, args.output)
-
-    # generate a plot if requested
-    # currently not available
-    # if args.plot:
-    #     generate_simple_plot(data, firststep)  # pragma: no cover
+    print_results_to_file(results, args.output)
 
     return 0

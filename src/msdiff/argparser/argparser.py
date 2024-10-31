@@ -249,6 +249,14 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
         help="R|File containing the mean square displacement in csv format",
     )
     p.add_argument(
+        "-a",
+        "--avg",
+        action="store_true",
+        dest="avg",
+        help="R|The input file contains the average values and the standard deviation.",
+        default=False,
+    )
+    p.add_argument(
         "-c",
         "--conductivity",
         action="store_true",
@@ -297,8 +305,8 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
         "--output",
         type=str,
         metavar="OUTPUT",
-        help="R|Output file name.",
-        default="msdiff_out.csv",
+        help="R|Output file name, without file extension. Default is 'msdiff', which will create 'msdiff_out.csv'.",
+        default="msdiff",
     )
     p.add_argument(
         "-p",
@@ -322,7 +330,7 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
         type=float,
         dest="tolerance",
         help="R|Tolerance for identifying the linear region.",
-        default=0.05,
+        default=0.10,
         action=action_in_range(0.001, 0.3),
     )
     p.add_argument(

@@ -18,10 +18,9 @@ from .diffusion import (
     process_input,
 )
 from .functions import (
+    calc_transport_numbers,
     calc_Hummer_correction,
     find_linear_region,
-    get_diffusion_coefficient,
-    find_cond_region,
-    get_conductivity,
+    linear_fit,
 )
 from .plotting import generate_simple_plot

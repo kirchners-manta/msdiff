@@ -1,11 +1,12 @@
 """
-Input reader for MSDiff
+Input reader for MSDiff diffusion
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-import pandas as pd
+
+import pandas as pd  # type: ignore
 
 
 def process_input(input_file: str | Path) -> tuple[pd.DataFrame, int]:

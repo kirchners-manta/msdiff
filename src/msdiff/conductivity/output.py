@@ -4,7 +4,7 @@ Print functions for msdiff, conductivity
 
 from __future__ import annotations
 
-import pandas as pd
+import pandas as pd  # type: ignore
 from pathlib import Path
 
 
@@ -14,38 +14,30 @@ def print_results_to_stdout(
 ) -> None:
     print("  \033[1mMSDiff Conductivity\033[0m")
     print("  ===================")
-    print(f"\nContributions")
+    print(f"\nContributions to the conductivity")
     # print the results per row
     for i, row in results.iterrows():
         print(
-            f"{row['Contribution']:<15}:  {row['sigma']:.4f} +- {row['delta_sigma']:.4f} S/m"
+            f"{row['contribution']:<23}:  {row['sigma']:7.4f} ± {row['delta_sigma']:7.4f} S/m"
         )
-        # for debugging
-        # print(
-        #     f"{row['Contribution']:<15}:  {row['sigma']:.4f} +- {row['delta_sigma']:.4f} S/m, {row['t_start']:.2f} - {row['t_end']:.2f} ps, {row['n_data']} data points"
-        # )
     print(f"\nA posteriori quantities")
     for i, col in enumerate(a_posteriori.columns):
         if i % 2 == 0:
-            if col == "sigma_an_cross" or col == "sigma_cat_cross":
-                print(
-                    f"{col:<15}:  {a_posteriori.iloc[0, i]:.4f} +- {a_posteriori.iloc[0, i+1]:.4f} S/m"
-                )
-            else:
-                print(
-                    f"{col:<15}:  {a_posteriori.iloc[0, i]:.4f} +- {a_posteriori.iloc[0, i+1]:.4f}"
-                )
+            print(
+                f"{col:<11}:  {a_posteriori.iloc[0, i]:7.4f} ± {a_posteriori.iloc[0, i+1]:7.4f}"
+            )
 
 
 def print_results_to_file(
     results: pd.DataFrame,
     a_porsteriori: pd.DataFrame,
-    output_file: str | Path,
+    output_file: str,
 ) -> None:
-    # write other results to same directory as output_file
-    out_posteriori = Path(output_file).parent / "msdiff_post.csv"
+    # define output file
+    out = Path(f"{output_file}_out.csv")
+    out_post = Path(f"{output_file}_post.csv")
 
-    results.to_csv(output_file, sep=",", index=False)
-    print(f"\nResults written to {output_file}")
-    a_porsteriori.to_csv(out_posteriori, sep=",", index=False)
-    print(f"A posteriori quantities written to {out_posteriori}")
+    results.to_csv(out, sep=",", index=False, float_format="%16.8f")
+    print(f"\nResults written to {out}")
+    a_porsteriori.to_csv(out_post, sep=",", index=False, float_format="%16.8f")
+    print(f"A posteriori quantities written to {out_post}")
