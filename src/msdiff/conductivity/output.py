@@ -37,7 +37,27 @@ def print_results_to_file(
     out = Path(f"{output_file}_out.csv")
     out_post = Path(f"{output_file}_post.csv")
 
-    results.to_csv(out, sep=",", index=False, float_format="%16.8f")
+    results.to_csv(
+        out,
+        sep=",",
+        index=False,
+        float_format="%16.8f",
+        header=[
+            "contribution",
+            "sigma / S*m^-1",
+            "delta_sigma / S*m^-1",
+            "r2",
+            "t_start / ps",
+            "t_end / ps",
+            "n_data_fit",
+        ],
+    )
     print(f"\nResults written to {out}")
-    a_porsteriori.to_csv(out_post, sep=",", index=False, float_format="%16.8f")
+
+    a_porsteriori.to_csv(
+        out_post,
+        sep=",",
+        index=False,
+        float_format="%16.8f",
+    )
     print(f"A posteriori quantities written to {out_post}")

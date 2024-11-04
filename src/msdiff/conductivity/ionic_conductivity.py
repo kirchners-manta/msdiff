@@ -200,23 +200,13 @@ def conductivity(args: argparse.Namespace) -> int:
             "cation_cross": "cation cross",
             "cation_tot": "cation total",
             "anion_cation": "anion-cation",
-            "total_ne": "total Nernst-Einstein",
-            "total_eh": "total Einstein-Helfand",
+            "total_ne": "Nernst-Einstein",
+            "total_eh": "Einstein-Helfand",
         }
     )
 
     print_results_to_stdout(results, a_posteriori)
 
-    # Rename columns for proper output
-    results = results.rename(
-        columns={
-            "sigma": "sigma / S*m^-1",
-            "delta_sigma": "delta_sigma / S*m^-1",
-            "t_start": "t_start / ps",
-            "t_end": "t_end / ps",
-            "n_data": "n_data_fit",
-        }
-    )
     print_results_to_file(results, a_posteriori, args.output)
 
     return 0

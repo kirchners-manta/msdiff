@@ -136,19 +136,6 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
 
     print_results_to_stdout(results)
 
-    # rename columns for file output
-    results = results.rename(
-        columns={
-            "diff": "D / 10^-12 m^2/s",
-            "delta_diff": "D_stderr / 10^-12 m^2/s",
-            "k_hum": "K / 10^-12 m^2/s",
-            "delta_k_hum": "K_stddev / 10^-12 m^2/s",
-            "t_start": "t_start / ps",
-            "t_end": "t_end / ps",
-            "n_data": "n_data_fit",
-        }
-    )
-
     print_results_to_file(results, args.output)
 
     return 0
