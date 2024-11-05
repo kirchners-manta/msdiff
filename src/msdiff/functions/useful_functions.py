@@ -10,8 +10,6 @@ import lmfit  # type: ignore
 import numpy as np
 import pandas as pd  # type: ignore
 
-lmod = lmfit.models.LinearModel()
-
 
 def find_linear_region(
     data: pd.DataFrame, tol: float, nslice: int = 10, incr: float = 0.01
@@ -155,13 +153,7 @@ def linear_fit(
     y = fit_data.iloc[:, 1]
     e = fit_data.iloc[:, 2]
 
-    if np.all(e == 0):
-        # no uncertainties, perform a simple linear regression
-        return linear_regression(x, y)
-
-    else:
-        # uncertainties are given, perform a weighted linear regression
-        return weighted_linear_regression(x, y, e)
+    return lmfit_linear_regression(x, y, e)
 
 
 def linear_regression(
@@ -242,6 +234,47 @@ def weighted_linear_regression(
     r2 = 1 - np.sum((y - a * x - b) ** 2) / np.sum((y - np.mean(y)) ** 2)
 
     return a, da, r2, len(x)
+
+
+def lmfit_linear_regression(
+    x: np.ndarray[Any, np.dtype[np.float64]],
+    y: np.ndarray[Any, np.dtype[np.float64]],
+    e: np.ndarray[Any, np.dtype[np.float64]],
+) -> tuple[float, float, float, int]:
+    """Perform a (weighted) linear regression using the LinearModel from lmfit.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        x-values
+    y : np.ndarray
+        y-values
+    e : np.ndarray
+        Uncertainties of the y-values
+
+    Returns
+    -------
+    tuple[float, float, float, int]
+        Slope, its uncertainty, and the R^2 value, as well as the number of data points
+    """
+    # y = a * x + b
+    lmod = lmfit.models.LinearModel(independent_vars=["x"])
+    params = lmod.make_params()
+
+    # perform the fit
+    # if there are no uncertainties, perform a simple linear regression
+    if np.all(e == 0):
+        result = lmod.fit(y, params, x=x)
+    # if there are uncertainties, perform a weighted linear regression
+    else:
+        result = lmod.fit(y, params, x=x, weights=1 / e)
+
+    return (
+        result.params["slope"].value,
+        result.params["slope"].stderr,
+        result.rsquared,
+        len(x),
+    )
 
 
 def calc_Hummer_correction(
