@@ -71,7 +71,7 @@ def find_linear_region(
 
             slope = (lnMSD[t1] - lnMSD[t2]) / (lnTime[t1] - lnTime[t2])
             # if the slope is nan, exit the loop
-            if np.isnan(slope):
+            if np.isnan(slope):  # pragma: no cover
                 break
             elif np.abs(slope - 1.0) > tol:
                 # if the slope is not within tolerance, go to the next interval
@@ -154,86 +154,6 @@ def linear_fit(
     e = fit_data.iloc[:, 2]
 
     return lmfit_linear_regression(x, y, e)
-
-
-def linear_regression(
-    x: np.ndarray[Any, np.dtype[np.float64]],
-    y: np.ndarray[Any, np.dtype[np.float64]],
-) -> tuple[float, float, float, int]:
-    """Perform a linear regression.
-
-    Parameters
-    ----------
-    x : np.ndarray
-        x-values
-    y : np.ndarray
-        y-values
-
-    Returns
-    -------
-    tuple[float, float, float, int]
-        Slope, its uncertainty, and the R^2 value as well as the number of data points
-    """
-    # no uncertainties, perform a simple linear regression
-    # y = a * x + b
-
-    ndata = len(x)
-
-    a = (ndata * np.sum(x * y) - np.sum(x) * np.sum(y)) / (
-        ndata * np.sum(x**2) - np.sum(x) ** 2
-    )
-
-    b = (np.sum(x**2) * np.sum(y) - np.sum(x) * np.sum(x * y)) / (
-        ndata * np.sum(x**2) - np.sum(x) ** 2
-    )
-
-    da = np.sqrt(ndata / (ndata * np.sum(x**2) - np.sum(x) ** 2)) * np.sqrt(
-        np.sum((y - a * x - b) ** 2) / (ndata - 2)
-    )
-
-    r2 = 1 - np.sum((y - a * x - b) ** 2) / np.sum((y - np.mean(y)) ** 2)
-
-    return a, da, r2, ndata
-
-
-def weighted_linear_regression(
-    x: np.ndarray[Any, np.dtype[np.float64]],
-    y: np.ndarray[Any, np.dtype[np.float64]],
-    e: np.ndarray[Any, np.dtype[np.float64]],
-) -> tuple[float, float, float, int]:
-    """Perform a weighted linear regression.
-
-    Parameters
-    ----------
-    x : np.ndarray
-        x-values
-    y : np.ndarray
-        y-values
-    e : np.ndarray
-        Uncertainties of the y-values
-
-    Returns
-    -------
-    tuple[float, float, float, int]
-        Slope, its uncertainty, and the R^2 value, as well as the number of data points
-    """
-    # perform a weighted linear regression according to: https://cbe.udel.edu/wp-content/uploads/2019/03/FittingData.pdf
-    # y = a * x + b
-
-    a = (
-        np.sum(x / e**2) * np.sum(y / e**2) - np.sum(x * y / e**2) * np.sum(1 / e**2)
-    ) / (np.sum(x / e**2) ** 2 - np.sum(x**2 / e**2) * np.sum(1 / e**2))
-
-    b = (np.sum(x * y / e**2) - a * np.sum(x**2 / e**2)) / np.sum(x / e**2)
-
-    da = np.sqrt(
-        np.sum(1 / e**2)
-        / (np.sum(x**2 / e**2) * np.sum(1 / e**2) - np.sum(x / e**2) ** 2)
-    )
-
-    r2 = 1 - np.sum((y - a * x - b) ** 2) / np.sum((y - np.mean(y)) ** 2)
-
-    return a, da, r2, len(x)
 
 
 def lmfit_linear_regression(

@@ -15,12 +15,11 @@ from .diffusion import (
     diffusion_coefficient,
     print_results_to_file,
     print_results_to_stdout,
-    process_input,
 )
 from .functions import (
     calc_transport_numbers,
     calc_Hummer_correction,
     find_linear_region,
     linear_fit,
+    lmfit_linear_regression,
 )
-from .plotting import generate_simple_plot

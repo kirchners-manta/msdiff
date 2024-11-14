@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from msdiff import argparser, diffusion_coefficient
+from msdiff import argparser, diffusion_coefficient, conductivity  # type: ignore
 
 
 def test_defaults() -> None:
@@ -22,29 +22,35 @@ def test_defaults() -> None:
         f"-f {example_file}".split()
     )  # add split because, the flags have to be given as arguments as well
 
+    assert isinstance(args.avg, bool)
+    assert args.avg == False
+
+    assert isinstance(args.conductivity, bool)
+    assert args.conductivity == False
+
+    assert isinstance(args.delta_viscosity, float)
+    assert args.delta_viscosity == 0.005039
+
     assert isinstance(args.from_travis, bool)
     assert args.from_travis == False
 
     assert isinstance(args.length, type(None))
     assert args.length == None
 
-    assert isinstance(args.output, str)
-    assert args.output == "msdiff_out.csv"
+    assert isinstance(args.dimensions, int)
+    assert args.dimensions == 3
 
-    assert isinstance(args.plot, bool)
-    assert args.plot == False
+    assert isinstance(args.output, str)
+    assert args.output == "msdiff"
 
     assert isinstance(args.temperature, float)
     assert args.temperature == 350.00
 
     assert isinstance(args.tolerance, float)
-    assert args.tolerance == 0.05
+    assert args.tolerance == 0.1
 
     assert isinstance(args.viscosity, float)
     assert args.viscosity == 0.008277
-
-    assert isinstance(args.delta_viscosity, float)
-    assert args.delta_viscosity == 0.005039
 
 
 def test_fail_type() -> None:
@@ -67,6 +73,8 @@ def test_fail_type() -> None:
             parser.parse_args(f"-l 5000 -f {example_file} --visco abc".split())
         with pytest.raises(SystemExit):
             parser.parse_args(f"-l 5000 -f {example_file} --d_visco abc".split())
+        with pytest.raises(SystemExit):
+            parser.parse_args(f"-l 5000 -f {example_file} --n abc".split())
 
 
 def test_fail_value() -> None:
@@ -93,6 +101,8 @@ def test_fail_value() -> None:
             parser.parse_args(f"-l 5000 -f {example_file} --visco -0.1".split())
         with pytest.raises(SystemExit):
             parser.parse_args(f"-l 5000 -f {example_file} --d_visco -0.1".split())
+        with pytest.raises(SystemExit):
+            parser.parse_args(f"-l 5000 -f {example_file} --n 0.2".split())
 
 
 def test_no_travis_log() -> None:

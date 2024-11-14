@@ -73,8 +73,8 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
 
     # perform linear regression in the linear region
     (
-        diff,
-        delta_diff,
+        slope,
+        delta_slope,
         r2,
         npoints_fit,
     ) = linear_fit(
@@ -82,9 +82,18 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
         firststep,
         laststep,
     )
+    # debug
+    # print(data)
+    print(f"firststep: {firststep}")
+    print(f"laststep: {laststep}")
+    print(f"diff: {slope}")
+    print(f"delta_diff: {delta_slope}")
+    print(f"r2: {r2}")
+    print(f"npoints_fit: {npoints_fit}")
+
     # divide D and delta D by 2*dimensions
-    diff /= 2 * args.dimensions
-    delta_diff /= 2 * args.dimensions
+    diff = slope / (2 * args.dimensions)
+    delta_diff = delta_slope / (2 * args.dimensions)
 
     # hummer correction
     (k_hum, delta_k_hum) = calc_Hummer_correction(
