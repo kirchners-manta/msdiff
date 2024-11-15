@@ -84,12 +84,12 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
     )
     # debug
     # print(data)
-    print(f"firststep: {firststep}")
-    print(f"laststep: {laststep}")
-    print(f"diff: {slope}")
-    print(f"delta_diff: {delta_slope}")
-    print(f"r2: {r2}")
-    print(f"npoints_fit: {npoints_fit}")
+    # print(f"firststep: {firststep}")
+    # print(f"laststep: {laststep}")
+    # print(f"diff: {slope}")
+    # print(f"delta_diff: {delta_slope}")
+    # print(f"r2: {r2}")
+    # print(f"npoints_fit: {npoints_fit}")
 
     # divide D and delta D by 2*dimensions
     diff = slope / (2 * args.dimensions)

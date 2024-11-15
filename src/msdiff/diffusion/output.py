@@ -20,7 +20,7 @@ def print_results_to_stdout(
     """
 
     print("  \033[1mMSDiff Diffusion\033[0m")
-    print("  ===================")
+    print("  ================")
 
     print(
         f"Diffusion coefficient: \t\t D = ({results['diff'][0]:12.8f} ± {results['delta_diff'][0]:12.8f}) * 10^-12 m^2/s"
