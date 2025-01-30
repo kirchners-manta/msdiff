@@ -1,7 +1,8 @@
 # MSDiff
 ---
 
-![Python versions](https://img.shields.io/badge/python-3.10%20%7C%203.11-blue)
+![Python versions](https://img.shields.io/badge/python-3.8%20|%203.9%20|%203.10%20|%203.11-blue)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![code style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 This repository offers a tool to calculate the diffusion coefficient based on molecular dynamics simulations.
@@ -17,8 +18,6 @@ git clone git@github.com:kirchners-manta/msdiff.git
 cd msdiff
 pip install .
 ```
-
-Python >= 3.7 is required.
 
 ## Usage
 
