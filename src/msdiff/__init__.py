@@ -17,8 +17,8 @@ from .diffusion import (
     print_results_to_stdout,
 )
 from .functions import (
-    calc_transport_numbers,
     calc_Hummer_correction,
+    calc_transport_numbers,
     find_linear_region,
     linear_fit,
     lmfit_linear_regression,

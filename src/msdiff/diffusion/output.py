@@ -4,8 +4,9 @@ Print functions for msdiff, diffusion coefficient
 
 from __future__ import annotations
 
-import pandas as pd  # type: ignore
 from pathlib import Path
+
+import pandas as pd
 
 
 def print_results_to_stdout(

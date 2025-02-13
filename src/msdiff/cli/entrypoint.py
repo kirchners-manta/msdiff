@@ -7,8 +7,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from ..argparser import parser
-from ..diffusion import diffusion_coefficient
 from ..conductivity import conductivity
+from ..diffusion import diffusion_coefficient
 
 
 def console_entry_point(argv: Sequence[str] | None = None) -> int:

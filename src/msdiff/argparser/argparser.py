@@ -49,7 +49,7 @@ def is_dir(path: str | Path) -> str | Path:
 
 
 # custom actions
-def action_not_less_than(min_value: float = 0.0) -> Type[argparse.Action]:
+def action_not_less_than(min_value: float = 0.0) -> type[argparse.Action]:
     class CustomActionLessThan(argparse.Action):
         """
         Custom action for limiting possible input values. Raise error if value is smaller than min_value.
@@ -59,17 +59,12 @@ def action_not_less_than(min_value: float = 0.0) -> Type[argparse.Action]:
             self,
             p: argparse.ArgumentParser,
             args: argparse.Namespace,
-            values: str | Sequence[Any] | None,
+            values: list[float | int] | float | int,  # type: ignore
             option_string: str | None = None,
         ) -> None:
-            if isinstance(values, str):
-                values = [float(values)]
-            elif isinstance(values, (int, float)):
+
+            if isinstance(values, (int, float)):
                 values = [values]
-            elif values is None:
-                values = []
-            else:
-                values = [float(v) for v in values]
 
             if any(value < min_value for value in values):
                 p.error(
@@ -84,7 +79,7 @@ def action_not_less_than(min_value: float = 0.0) -> Type[argparse.Action]:
     return CustomActionLessThan
 
 
-def action_not_more_than(max_value: float = 0.0) -> Type[argparse.Action]:
+def action_not_more_than(max_value: float = 0.0) -> type[argparse.Action]:
     class CustomActionMoreThan(argparse.Action):
         """
         Custom action for limiting possible input values. Raise error if value is larger than max_value.
@@ -94,17 +89,11 @@ def action_not_more_than(max_value: float = 0.0) -> Type[argparse.Action]:
             self,
             p: argparse.ArgumentParser,
             args: argparse.Namespace,
-            values: str | Sequence[Any] | None,
+            values: list[float | int] | float | int,  # type: ignore
             option_string: str | None = None,
         ) -> None:
-            if isinstance(values, str):
-                values = [float(values)]
-            elif isinstance(values, (int, float)):
+            if isinstance(values, (int, float)):
                 values = [values]
-            elif values is None:
-                values = []
-            else:
-                values = [float(v) for v in values]
 
             if any(value > max_value for value in values):
                 p.error(
@@ -121,7 +110,7 @@ def action_not_more_than(max_value: float = 0.0) -> Type[argparse.Action]:
 
 def action_in_range(
     min_value: float = 0.0, max_value: float = 1.0
-) -> Type[argparse.Action]:
+) -> type[argparse.Action]:
     class CustomActionInRange(argparse.Action):
         """
         Custom action for limiting possible input values in a range. Raise error if value is not in range [min_value, max_value].
@@ -131,17 +120,11 @@ def action_in_range(
             self,
             p: argparse.ArgumentParser,
             args: argparse.Namespace,
-            values: str | Sequence[Any] | None,
+            values: list[float | int] | float | int,  # type: ignore
             option_string: str | None = None,
         ) -> None:
-            if isinstance(values, str):
-                values = [float(values)]
-            elif isinstance(values, (int, float)):
+            if isinstance(values, (int, float)):
                 values = [values]
-            elif values is None:
-                values = []
-            else:
-                values = [float(v) for v in values]
 
             if any(value < min_value or value > max_value for value in values):
                 p.error(

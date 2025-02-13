@@ -8,7 +8,7 @@ import argparse
 from pathlib import Path
 
 import numpy as np
-import pandas as pd  # type: ignore
+import pandas as pd
 
 from ..functions import calc_transport_numbers, find_linear_region, linear_fit
 from .output import print_results_to_file, print_results_to_stdout

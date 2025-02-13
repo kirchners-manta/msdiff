@@ -4,7 +4,7 @@ This directory contains example files and their expected results.
 
 ## Self-diffusion coefficient of NTf<sub>2</sub>
 
-In [diffusion/ntf2](./diffusion/ntf2/), there is an [output file](./diffusion/ntf2/msd_from_travis.csv) from a TRAVIS MSD calculation of the anion in a system of [C<sub>2</sub>C<sub>1</sub>Im][NTf<sub>2</sub>] at 350 K. 
+In [diffusion/ntf2](./diffusion/ntf2/), there is an [output file](./diffusion/ntf2/msd_from_travis.csv) from a TRAVIS MSD calculation of the anion in a system of [C<sub>2</sub>C<sub>1</sub>Im][NTf<sub>2</sub>] at 350 K.
 The corresponding box length is 6134.48 pm.
 The program is run with the following command:
 
@@ -26,7 +26,7 @@ Additionally, the results can be found in the [MSDiff output file](./ntf2/msdiff
 
 ## Self-diffusion coefficient from averaged MSD
 
-In [diffusion/avg](./diffusion/avg/), there is an [file](./diffusion/avg/diffusion_c2c1im_avg.csv) that contains the averaged MSD and standard deviation of several trajectories of the cation in a system of [C<sub>2</sub>C<sub>1</sub>Im][NTf<sub>2</sub>]. 
+In [diffusion/avg](./diffusion/avg/), there is an [file](./diffusion/avg/diffusion_c2c1im_avg.csv) that contains the averaged MSD and standard deviation of several trajectories of the cation in a system of [C<sub>2</sub>C<sub>1</sub>Im][NTf<sub>2</sub>].
 The corresponding box length is 4869.95 pm.
 As this is an averaged MSD the `--avg` option is selected, and the program is run with the following command:
 

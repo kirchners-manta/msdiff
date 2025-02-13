@@ -21,7 +21,7 @@ pip install .
 
 ## Usage
 
-The program is designed as a command line tool. 
+The program is designed as a command line tool.
 Type `msdiff -h` to get a list of all available options:
 
 Examples for the usage are given in the [examples](./examples) folder.

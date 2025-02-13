@@ -1,14 +1,12 @@
-""" 
+"""
 Test the function to find the linear region of an MSD data set.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
-from msdiff import calc_Hummer_correction  # type: ignore
+from msdiff import calc_Hummer_correction
 
 
 @pytest.mark.parametrize(

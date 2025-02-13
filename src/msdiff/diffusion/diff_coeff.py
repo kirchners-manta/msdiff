@@ -7,10 +7,8 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
-from typing import List, Union
 
-import numpy as np
-import pandas as pd  # type: ignore
+import pandas as pd
 
 from ..functions import calc_Hummer_correction, find_linear_region, linear_fit
 from .output import print_results_to_file, print_results_to_stdout
@@ -39,7 +37,7 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
     if args.from_travis:
         travis_path = Path(args.file).parent / "travis.log"
         if os.path.isfile(travis_path):
-            with open(travis_path, "r", encoding="utf8") as f:
+            with open(travis_path, encoding="utf8") as f:
                 for line in f:
                     if "Found cell geometry data in trajectory file" in line:
                         # read box length from the over next line

@@ -1,4 +1,4 @@
-#time (ps); Anion_D; Cation_D; Anion_C; Cation_C; Anion_Cation; Total; units in y-axis are ps*S/m 
+#time (ps); Anion_D; Cation_D; Anion_C; Cation_C; Anion_Cation; Total; units in y-axis are ps*S/m
 1;  12.0716;  12.9899;  -11.1983;  -7.44423;  4.40141;  10.8204
 2;  16.4902;  17.8276;  -15.3657;  -10.6871;  5.66717;  13.9322
 3;  18.9923;  20.713;  -17.6893;  -12.4386;  6.56715;  16.1447

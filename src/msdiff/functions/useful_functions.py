@@ -6,9 +6,9 @@ from __future__ import annotations
 
 from typing import Any
 
-import lmfit  # type: ignore
+import lmfit
 import numpy as np
-import pandas as pd  # type: ignore
+import pandas as pd
 
 
 def find_linear_region(

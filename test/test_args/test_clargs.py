@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from msdiff import argparser, diffusion_coefficient, conductivity  # type: ignore
+from msdiff import argparser, diffusion_coefficient
 
 
 def test_defaults() -> None:

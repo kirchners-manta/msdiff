@@ -1,4 +1,4 @@
-""" 
+"""
 Test the function to find the linear region of an MSD data set.
 """
 
@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from msdiff import find_linear_region  # type: ignore
+from msdiff import find_linear_region
 
 
 @pytest.mark.parametrize(
