@@ -283,7 +283,7 @@ def calc_transport_numbers(
     s_pm_err = data.loc[data["contribution"] == "anion_cation", "delta_sigma"].values[0]
 
     # calculate a posteriori quantities
-    
+
     # only if contributions are not zero
     if s_ne == 0:
         ion = 0.0
@@ -292,9 +292,11 @@ def calc_transport_numbers(
         t_mm_id_err = 0.0
         t_pp_id = 0.0
         t_pp_id_err = 0.0
-        
+
         # print information to user
-        print("\n*** Warning: Nernst-Einstein conductivity is zero, transport numbers are not calculated.\n")
+        print(
+            "\n*** Warning: Nernst-Einstein conductivity is zero, transport numbers are not calculated.\n"
+        )
     else:
         # ionicity is the ratio of the total Einstein-Helfand conductivity to the total Nernst-Einstein conductivity
         ion = s_eh / s_ne
