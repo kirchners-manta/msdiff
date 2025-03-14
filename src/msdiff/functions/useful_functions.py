@@ -13,7 +13,7 @@ import pandas as pd
 
 def find_linear_region(
     data: pd.DataFrame, tol: float, nslice: int = 10, incr: float = 0.01
-) -> tuple[float, float]:
+) -> tuple[int, int]:
     """Find the linear region in the MSD or collective MSD data.
     The MSD data is partitioned into nslice slices, and in each slice, the slope is calculated. If the slope is about 1 within the tolerance, the slice is is gradually increased by incr until the slope is not about 1 anymore.
     The search is started at the end of the data set and goes backwards (i.e., from larger to smaller correlation times).
@@ -33,18 +33,15 @@ def find_linear_region(
 
     Returns
     -------
-    tuple[float, float]
-        First and last time step of the linear region, not their indices. Is (-1, -1) if no linear region is found.
+    tuple[int, int]
+        Indices of the first and last time step of the linear region.
+        Is (-1, -1) if no linear region is found.
     """
     # use log-log plot to find linear region
     # drop first data point to avoid zero
 
     lnMSD = np.log(data.iloc[:, 1][1:])
     lnTime = np.log(data.iloc[:, 0][1:])
-
-    # debug
-    # print(lnTime)
-    # print(lnMSD)
 
     # set initial values
     int_list = []
@@ -54,20 +51,14 @@ def find_linear_region(
     for n in range(2 * nslice - 1):
 
         # define starting points for the scanning: t2 > t1
-        # t2 is the end of the interval (at larger correlation times)
-        # t1 is the beginning of the interval (at smaller correlation times)
+        # t2 (index) is the end of the interval (at larger correlation times)
+        # t1 (index) is the beginning of the interval (at smaller correlation times)
         linear_region = True
         t1 = ndata - int((n + 2) / 2 * ndata / nslice) + 1
         t2 = ndata - int(n / 2 * ndata / nslice)
 
-        # debug
-        # print(t1, t2)
-
         while linear_region:
             # calculate the slope between two points
-
-            # debug
-            # print(t1, t2)
 
             slope = (lnMSD[t1] - lnMSD[t2]) / (lnTime[t1] - lnTime[t2])
             # if the slope is nan, exit the loop
@@ -78,6 +69,7 @@ def find_linear_region(
                 linear_region = False
             else:
                 # if the slope is within tolerance, append the interval to the list
+                # attention: t1 and t2 are indices, not time steps
                 int_list.append(
                     [
                         t1,
@@ -93,15 +85,13 @@ def find_linear_region(
 
     linreg_data = pd.DataFrame(int_list, columns=["t1", "t2", "npoints", "slope_abs"])
 
-    if len(linreg_data) > 1:
+    if len(linreg_data) >= 1:
         # identify the row where npoints is maximal.
         # if several rows have the same value, take the one where the slope is closest to 1
         linreg_final = linreg_data.sort_values(
             ["npoints", "slope_abs"], ascending=[False, True]
         ).iloc[[0]]
         firststep, laststep = linreg_final["t1"].iloc[0], linreg_final["t2"].iloc[0]
-    elif len(linreg_data) == 1:
-        firststep, laststep = linreg_data["t1"].iloc[0], linreg_data["t2"].iloc[0]
     else:
         firststep, laststep = -1, -1
 
@@ -110,8 +100,8 @@ def find_linear_region(
 
 def linear_fit(
     data: pd.DataFrame,
-    firststep: float,
-    laststep: float,
+    firststep: int,
+    laststep: int,
 ) -> tuple[float, float, float, int]:
     """Perform linear fit (on the MSD or collective MSD data) in the linear region.
 
@@ -119,10 +109,10 @@ def linear_fit(
     ----------
     data : pd.DataFrame
         MSD data
-    firststep : float
-        First step of the linear region, not its index
-    laststep : float
-        Last step of the linear region, not its index
+    firststep : int
+        Index of the first step of the linear region
+    laststep : int
+        Index of the last step of the linear region
 
     Returns
     -------

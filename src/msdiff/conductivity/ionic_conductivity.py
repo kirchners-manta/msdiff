@@ -34,8 +34,6 @@ def conductivity(args: argparse.Namespace) -> int:
     with open(args.file, encoding="utf-8") as f:
         first_line = f.readline()
         n_columns = len(first_line.split(";"))
-        # debug
-        print(f"Number of columns: {n_columns}")
 
     # if 'avg' option is true, the file contains the average values and the standard deviation
     # the file can contain either just the total conductivity or all contributions
@@ -212,9 +210,16 @@ def conductivity(args: argparse.Namespace) -> int:
 
         # summarize results in a list
         result_list.append(
-            [data_set, cond, delta_cond, r2, firststep, laststep, npoints_fit]
+            [
+                data_set,
+                cond,
+                delta_cond,
+                r2,
+                cond_data["time"].iloc[firststep],
+                cond_data["time"].iloc[laststep],
+                npoints_fit,
+            ]
         )
-
     # summarize results in a data frame
     results = pd.DataFrame(
         data=result_list,

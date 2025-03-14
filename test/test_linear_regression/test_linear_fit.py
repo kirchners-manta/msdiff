@@ -47,8 +47,8 @@ from msdiff import linear_fit
 )
 def test_perform_linear_regression(
     msd_data: pd.DataFrame,
-    firststep: float,
-    laststep: float,
+    firststep: int,
+    laststep: int,
     slope: float,
     uncertainty: float,
     r2: float,
