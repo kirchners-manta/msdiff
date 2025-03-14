@@ -283,30 +283,42 @@ def calc_transport_numbers(
     s_pm_err = data.loc[data["contribution"] == "anion_cation", "delta_sigma"].values[0]
 
     # calculate a posteriori quantities
-    ion = s_eh / s_ne
-    ion_err = np.sqrt((s_eh_err / s_ne) ** 2 + (s_eh * s_ne_err / s_ne**2) ** 2)
+    
+    # only if contributions are not zero
+    if s_ne == 0:
+        ion = 0.0
+        ion_err = 0.0
+        t_mm_id = 0.0
+        t_mm_id_err = 0.0
+        t_pp_id = 0.0
+        t_pp_id_err = 0.0
+        
+        # print information to user
+        print("\n*** Warning: Nernst-Einstein conductivity is zero, transport numbers are not calculated.\n")
+    else:
+        # ionicity is the ratio of the total Einstein-Helfand conductivity to the total Nernst-Einstein conductivity
+        ion = s_eh / s_ne
+        ion_err = np.sqrt((s_eh_err / s_ne) ** 2 + (s_eh * s_ne_err / s_ne**2) ** 2)
 
-    # the ideal transport numbers are calculated from the self terms only
-    t_mm_id = s_mm_self / s_ne
-    t_mm_id_err = np.sqrt(
-        (s_mm_self_err / s_ne) ** 2 + (s_mm_self * s_ne_err / s_ne**2) ** 2
-    )
-    t_pp_id = s_pp_self / s_ne
-    t_pp_id_err = np.sqrt(
-        (s_pp_self_err / s_ne) ** 2 + (s_pp_self * s_ne_err / s_ne**2) ** 2
-    )
+        # the ideal transport numbers are calculated from the self terms only
+        t_mm_id = s_mm_self / s_ne
+        t_mm_id_err = np.sqrt(
+            (s_mm_self_err / s_ne) ** 2 + (s_mm_self * s_ne_err / s_ne**2) ** 2
+        )
+        t_pp_id = s_pp_self / s_ne
+        t_pp_id_err = np.sqrt(
+            (s_pp_self_err / s_ne) ** 2 + (s_pp_self * s_ne_err / s_ne**2) ** 2
+        )
 
     # there is no physical meaning in the transport number for the plus minus terms. it is equally attributed to both ions
     t_pm = s_pm / s_eh
     t_pm_err = np.sqrt((s_pm_err / s_eh) ** 2 + (s_pm * s_eh_err / s_eh**2) ** 2)
-
     t_mm = s_mm_tot / s_eh + t_pm / 2
     t_mm_err = np.sqrt(
         (s_mm_tot_err / s_eh) ** 2
         + (s_mm_tot * s_eh_err / s_eh**2) ** 2
         + (t_pm_err / 2) ** 2
     )
-
     t_pp = s_pp_tot / s_eh + t_pm / 2
     t_pp_err = np.sqrt(
         (s_pp_tot_err / s_eh) ** 2
