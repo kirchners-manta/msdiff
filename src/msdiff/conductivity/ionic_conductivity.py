@@ -34,6 +34,8 @@ def conductivity(args: argparse.Namespace) -> int:
     with open(args.file, encoding="utf-8") as f:
         first_line = f.readline()
         n_columns = len(first_line.split(";"))
+        # debug
+        print(f"Number of columns: {n_columns}")
 
     # if 'avg' option is true, the file contains the average values and the standard deviation
     # the file can contain either just the total conductivity or all contributions
@@ -60,7 +62,7 @@ def conductivity(args: argparse.Namespace) -> int:
         ) = data["anion_cation_std"] = 0.0
 
     # average and all contributions
-    elif args.avg and n_columns == 14:
+    elif args.avg and n_columns == 13:
         data = pd.read_csv(
             args.file,
             sep=";",
@@ -79,7 +81,6 @@ def conductivity(args: argparse.Namespace) -> int:
                 "anion_cation_std",
                 "total_eh",
                 "total_eh_std",
-                " ",
             ],
         ).astype(float)
 
@@ -104,7 +105,7 @@ def conductivity(args: argparse.Namespace) -> int:
             data["cation_cross_std"]
         ) = data["anion_cation_std"] = 0.0
 
-    elif not args.avg and n_columns == 8:
+    elif not args.avg and (n_columns == 8 or n_columns == 7):
         data = pd.read_csv(
             args.file,
             sep=";",
@@ -120,6 +121,9 @@ def conductivity(args: argparse.Namespace) -> int:
                 " ",
             ],
         ).astype(float)
+
+        # drop empty column
+        data = data.drop(columns=[" "])
 
         # add standard deviation columns and set them to zero
         data["anion_self_std"] = data["cation_self_std"] = data["anion_cross_std"] = (
