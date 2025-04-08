@@ -57,6 +57,9 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
         data = pd.read_csv(
             args.file, sep=";", skiprows=1, names=["time", "msd", "msd_std"]
         ).astype(float)
+
+        # debug
+        # print(data)
     else:
         # if 'avg' option is false, the file contains the MSD for a single molecule and the derivative (not needed), the default output of TRAVIS
         data = pd.read_csv(
@@ -69,17 +72,25 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
     # determine linear region
     (firststep, laststep) = find_linear_region(data[["time", "msd"]], args.tolerance)
 
+    # debug
+    # print(f"firststep: {firststep}, laststep: {laststep}")
+
     # perform linear regression in the linear region
-    (
-        slope,
-        delta_slope,
-        r2,
-        npoints_fit,
-    ) = linear_fit(
-        data,
-        firststep,
-        laststep,
-    )
+    if firststep == -1 or laststep == -1:
+        raise ValueError(
+            "No linear region found in the data. Please check the input file and the tolerance."
+        )
+    else:
+        (
+            slope,
+            delta_slope,
+            r2,
+            npoints_fit,
+        ) = linear_fit(
+            data,
+            firststep,
+            laststep,
+        )
 
     # divide D and delta D by 2*dimensions
     diff = slope / (2 * args.dimensions)
