@@ -292,6 +292,16 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
         default="msdiff",
     )
     p.add_argument(
+        "--orthoboxy",
+        action="store_true",
+        dest="orthoboxy",
+        default=False,
+        help="R|If the box is orthorhombic with Lz/Ly = 2.7933596497, the Hummer correction is 0.\n\
+            The box dimension does not have to be given.\n\
+            The program will expect files that solely considers the MSD x and y directions.\n\
+            The dimensionality of the system will be set to 2.",
+    )
+    p.add_argument(
         "-p",
         "--plot",
         action="store_true",

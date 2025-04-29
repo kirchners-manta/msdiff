@@ -35,7 +35,7 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
 
     # if 'from travis' option is true, check for the box length in travis output file
     if args.from_travis:
-        travis_path = Path(args.file).parent / "travis.log"
+        travis_path = Path(args.file[0]).parent / "travis.log"
         if os.path.isfile(travis_path):
             with open(travis_path, encoding="utf8") as f:
                 for line in f:
@@ -47,26 +47,23 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
         else:
             raise FileNotFoundError("travis.log not found.")
 
-    # if length is not given, raise error
-    if args.length is None:
+    # for orthoboxy, don't need to give the box length
+    if args.orthoboxy:
+        args.dimensions = 2
+    # elif length is not given, raise error
+    elif args.length is None:
         raise ValueError("Box length not given.")
 
     # read data from file
-    if args.avg:
-        # if 'avg' option is true, the file contains the average values and the standard deviation
-        data = pd.read_csv(
-            args.file, sep=";", skiprows=1, names=["time", "msd", "msd_std"]
-        ).astype(float)
+    data = pd.read_csv(
+        args.file, sep=";", skiprows=1, names=["time", "msd", "msd_std"]
+    ).astype(float)
 
-        # debug
-        # print(data)
-    else:
-        # if 'avg' option is false, the file contains the MSD for a single molecule and the derivative (not needed), the default output of TRAVIS
-        data = pd.read_csv(
-            args.file, sep=";", skiprows=1, names=["time", "msd", "derivative"]
-        ).astype(float)
-        # drop the derivative column and add std column as zeros
-        data = data.drop(columns=["derivative"])
+    # debug
+    # print(data)
+
+    if not args.avg:
+        # if 'avg' option is false, the file contains the MSD for a single molecule and the derivative (not needed), is skipped.
         data["msd_std"] = 0.0
 
     # determine linear region
@@ -97,12 +94,15 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
     delta_diff = delta_slope / (2 * args.dimensions)
 
     # hummer correction
-    (k_hum, delta_k_hum) = calc_Hummer_correction(
-        args.temperature,
-        args.viscosity,
-        args.length,
-        args.delta_viscosity,
-    )
+    if args.orthoboxy:
+        k_hum = delta_k_hum = 0.0
+    else:
+        (k_hum, delta_k_hum) = calc_Hummer_correction(
+            args.temperature,
+            args.viscosity,
+            args.length,
+            args.delta_viscosity,
+        )
 
     results_list = []
 
