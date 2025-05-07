@@ -161,7 +161,7 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
         delta_diff_z = delta_slope_z / 2
 
         # debug
-        print(diff, delta_diff, diff_z, delta_diff_z, args.hummer[0], args.length[2])
+        # print(diff, delta_diff, diff_z, delta_diff_z, args.hummer[0], args.length[2])
 
         eta, delta_eta = calc_orthoboxy_viscosity(
             diff, delta_diff, diff_z, delta_diff_z, args.hummer[0], args.length[2]

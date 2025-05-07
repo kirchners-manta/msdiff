@@ -159,12 +159,16 @@ def action_check_hummer() -> type[argparse.Action]:
                     f"Option '{option_string}' takes only values larger than 100. {values[0]} is not accepted."
                 )
             # viscosity has to be > 0
-            if values[1] <= 0.0:
+            if len(values) == 1:
+                values.append(0.008277)
+            elif values[1] <= 0.0:
                 p.error(
                     f"Option '{option_string}' takes only values larger than 0. {values[1]} is not accepted."
                 )
             # delta_viscosity has to be >= 0
-            if values[2] < 0.0:
+            if len(values) == 2:
+                values.append(0.005039)
+            elif values[2] < 0.0:
                 p.error(
                     f"Option '{option_string}' takes only values larger than or equal to 0. {values[2]} is not accepted."
                 )
@@ -293,12 +297,12 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
         "--hummer",
         action=action_check_hummer(),
         dest="hummer",
-        default=(
+        default=[
             350.0,
             0.008277,
             0.005039,
-        ),  # eta and d_eta calculated from equation in https://doi.org/10.1021/jp044626d
-        nargs=3,
+        ],  # eta and d_eta calculated from equation in https://doi.org/10.1021/jp044626d
+        nargs="+",
         type=float,
         help="R|Use the Hummer correction for the diffusion coefficient.\nThe values are given in the format 'Temperature, Viscosity, delta_Viscosity' (comma separated).\nThe temperature is in K, the viscosity in kg/(m*s) and the d_Viscosity in kg/(m*s).",
     )
