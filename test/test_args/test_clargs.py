@@ -4,6 +4,7 @@ Test command line options / arguments
 
 from __future__ import annotations
 
+import argparse
 from contextlib import redirect_stderr
 from io import StringIO
 from pathlib import Path
@@ -28,8 +29,14 @@ def test_defaults() -> None:
     assert isinstance(args.conductivity, bool)
     assert args.conductivity == False
 
-    assert isinstance(args.delta_viscosity, float)
-    assert args.delta_viscosity == 0.005039
+    assert isinstance(args.hummer, tuple)
+    assert len(args.hummer) == 3
+    assert isinstance(args.hummer[0], float)
+    assert isinstance(args.hummer[1], float)
+    assert isinstance(args.hummer[2], float)
+    assert args.hummer[0] == 350.00
+    assert args.hummer[1] == 0.008277
+    assert args.hummer[2] == 0.005039
 
     assert isinstance(args.from_travis, bool)
     assert args.from_travis == False
@@ -43,14 +50,8 @@ def test_defaults() -> None:
     assert isinstance(args.output, str)
     assert args.output == "msdiff"
 
-    assert isinstance(args.temperature, float)
-    assert args.temperature == 350.00
-
     assert isinstance(args.tolerance, float)
     assert args.tolerance == 0.1
-
-    assert isinstance(args.viscosity, float)
-    assert args.viscosity == 0.008277
 
 
 def test_fail_type() -> None:
@@ -75,6 +76,12 @@ def test_fail_type() -> None:
             parser.parse_args(f"-l 5000 -f {example_file} --d_visco abc".split())
         with pytest.raises(SystemExit):
             parser.parse_args(f"-l 5000 -f {example_file} --n abc".split())
+        with pytest.raises(SystemExit):
+            parser.parse_args(f"-l 5000 -f {Path(__file__).parent / 'data'} ".split())
+        with pytest.raises(SystemExit):
+            parser.parse_args(
+                f"-l 5000 -f {Path(__file__).parent / 'data' / 'yasdas'}".split()
+            )
 
 
 def test_fail_value() -> None:
@@ -103,6 +110,18 @@ def test_fail_value() -> None:
             parser.parse_args(f"-l 5000 -f {example_file} --d_visco -0.1".split())
         with pytest.raises(SystemExit):
             parser.parse_args(f"-l 5000 -f {example_file} --n 0.2".split())
+        with pytest.raises(SystemExit):
+            parser.parse_args(
+                f"-l 5000 -f {example_file} --hummer 50.0 1.0 1.0".split()
+            )
+        with pytest.raises(SystemExit):
+            parser.parse_args(
+                f"-l 5000 -f {example_file} --hummer 150.0 0.0 1.0".split()
+            )
+        with pytest.raises(SystemExit):
+            parser.parse_args(
+                f"-l 5000 -f {example_file} --hummer 150.0 1.0 -0.1".split()
+            )
 
 
 def test_no_travis_log() -> None:

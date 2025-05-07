@@ -10,10 +10,17 @@ import lmfit
 import numpy as np
 import pandas as pd
 
+# constants
+KBOLTZ = 1.38064852e-23  # Boltzmann constant in J/K
+ZETA_HUMMER = (
+    2.8372974795  # dimensionless, from https://doi.org/10.1021/acs.jpcb.3c04492
+)
+ZETA_ZZ = 8.1711245653  # dimensionless, from https://doi.org/10.1021/acs.jpcb.3c04492
+
 
 def find_linear_region(
     data: pd.DataFrame, tol: float, nslice: int = 10, incr: float = 0.01
-) -> tuple[int, int]:
+) -> list[int]:
     """Find the linear region in the MSD or collective MSD data.
     The MSD data is partitioned into nslice slices, and in each slice, the slope is calculated. If the slope is about 1 within the tolerance, the slice is is gradually increased by incr until the slope is not about 1 anymore.
     The search is started at the end of the data set and goes backwards (i.e., from larger to smaller correlation times).
@@ -33,7 +40,7 @@ def find_linear_region(
 
     Returns
     -------
-    tuple[int, int]
+    list[int]
         Indices of the first and last time step of the linear region.
         Is (-1, -1) if no linear region is found.
     """
@@ -95,14 +102,14 @@ def find_linear_region(
     else:
         firststep, laststep = -1, -1
 
-    return firststep, laststep
+    return [firststep, laststep]
 
 
 def linear_fit(
     data: pd.DataFrame,
     firststep: int,
     laststep: int,
-) -> tuple[float, float, float, int]:
+) -> list[float | int]:
     """Perform linear fit (on the MSD or collective MSD data) in the linear region.
 
     Parameters
@@ -116,7 +123,7 @@ def linear_fit(
 
     Returns
     -------
-    tuple[float, float, float, int]
+    list[float | int]
         slope, its uncertainty, R^2 value, and the number of data points
 
     Raises
@@ -150,7 +157,7 @@ def lmfit_linear_regression(
     x: np.ndarray[Any, np.dtype[np.float64]],
     y: np.ndarray[Any, np.dtype[np.float64]],
     e: np.ndarray[Any, np.dtype[np.float64]],
-) -> tuple[float, float, float, int]:
+) -> list[float | int]:
     """Perform a (weighted) linear regression using the LinearModel from lmfit.
 
     Parameters
@@ -164,7 +171,7 @@ def lmfit_linear_regression(
 
     Returns
     -------
-    tuple[float, float, float, int]
+    list[float | int]
         Slope, its uncertainty, and the R^2 value, as well as the number of data points
     """
     # y = a * x + b
@@ -179,12 +186,12 @@ def lmfit_linear_regression(
     else:
         result = lmod.fit(y, params, x=x, weights=1 / e)
 
-    return (
-        result.params["slope"].value,
-        result.params["slope"].stderr,
-        result.rsquared,
-        len(x),
-    )
+    return [
+        float(result.params["slope"].value),
+        float(result.params["slope"].stderr),
+        float(result.rsquared),
+        int(len(x)),
+    ]
 
 
 def calc_Hummer_correction(
@@ -192,7 +199,7 @@ def calc_Hummer_correction(
     viscosity: float,
     box_length: float,
     delta_viscosity: float,
-) -> tuple[float, float]:
+) -> list[float]:
     """Calculate the Hummer correction term to extrapolate the diffusion coefficient to infinite box size, assuming that the box is an isotropic cube.
 
     Parameters
@@ -208,24 +215,74 @@ def calc_Hummer_correction(
 
     Returns
     -------
-    tuple[float, float]
+    list[float]
         Hummer correction term and its standard deviation in m^2 s^-1
     """
-    xi = 2.837298  # dimensionless
-    kb = 1.38064852e-23  # Boltzmann constant in J/K
 
     # calculate the Hummer correction term
-    k_hum = kb * xi * temp * 1e24 / (6 * np.pi * viscosity * box_length)
+    k_hum = KBOLTZ * ZETA_HUMMER * temp * 1e24 / (6 * np.pi * viscosity * box_length)
     delta_k_hum = (
-        kb
-        * xi
+        KBOLTZ
+        * ZETA_HUMMER
         * temp
         * 1e24
         * delta_viscosity
         / (6 * np.pi * viscosity**2 * box_length)
     )
 
-    return k_hum, delta_k_hum
+    return [k_hum, delta_k_hum]
+
+
+def calc_orthoboxy_viscosity(
+    diff_xy: float,
+    delta_diff_xy: float,
+    diff_z: float,
+    delta_diff_z: float,
+    temp: float,
+    box_length: float,
+) -> list[float]:
+    """Calculate the viscosity using the Orthoboxy method.
+
+    Parameters
+    ----------
+    diff_xy : float
+        Diffusion coefficient in xy plane in 10^-12 m^2/s
+    delta_diff_xy : float
+        Uncertainty of diffusion coefficient in xy plane in 10^-12 m^2/s
+    diff_z : float
+        Diffusion coefficient in z direction in 10^-12 m^2/s
+    delta_diff_z : float
+        Uncertainty of diffusion coefficient in z direction in 10^-12 m^2/s
+    temp : float
+        Temperature in K
+    box_length : float
+        Box length in z direction in pm
+
+    Returns
+    -------
+    list[float]
+        Viscosity and its standard deviation in mPa s (= 10^-3 kg (m s)^-1)
+    """
+
+    # calculate the viscosity using the Orthoboxy method
+    eta = (
+        KBOLTZ
+        * ZETA_ZZ
+        * temp
+        * 1e24
+        / (6 * np.pi * box_length * (diff_xy - diff_z))
+        * 1e3  # from Pa s to mPa s
+    )
+    delta_eta = (
+        KBOLTZ
+        * ZETA_ZZ
+        * temp
+        * 1e24
+        / (6 * np.pi * box_length * (diff_xy - diff_z) ** 2)
+        * (delta_diff_xy**2 + delta_diff_z**2) ** 0.5
+    ) * 1e3
+
+    return [eta, delta_eta]
 
 
 def calc_transport_numbers(

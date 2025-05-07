@@ -7,6 +7,7 @@ This module contains useful functions for the diffusion coefficient calculation.
 
 from .useful_functions import (
     calc_Hummer_correction,
+    calc_orthoboxy_viscosity,
     calc_transport_numbers,
     find_linear_region,
     linear_fit,

@@ -54,7 +54,7 @@ def test_perform_linear_regression(
     r2: float,
     ndata: int,
 ) -> None:
-    assert linear_fit(msd_data, firststep, laststep) == (slope, uncertainty, r2, ndata)
+    assert linear_fit(msd_data, firststep, laststep) == [slope, uncertainty, r2, ndata]
 
 
 def test_fail_linear_regression() -> None:
