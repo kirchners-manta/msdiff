@@ -30,7 +30,7 @@ Command line:
  #  Running on k33 at Wed May  7 09:33:02 2025 (PID 314010)
  #  Running in /home/froembgen/test/msd_new_feature
  #  Version: Mar 5 2024, built at Jun 17 2024, 09:55:51, compiler "11.4.0", GCC 11.4.0
- #  Target platform: Linux, __cplusplus=201103L, Compile flags: DEBUG_ARRAYS 
+ #  Target platform: Linux, __cplusplus=201103L, Compile flags: DEBUG_ARRAYS
  #  Machine: x86_64, char=8bits, int=4b, long=8b, addr=8b, 0xA0B0C0D0=D0,C0,B0,A0.
  #  Home: /home/froembgen,  Executable: /home/froembgen/bin/travis
  #  Input from input.txt, Output to terminal
@@ -41,11 +41,11 @@ Command line:
 
     Opening position trajectory equi.lammpstrj ...
     Analyzing LAMMPS trajectory column definition:
-      - Field  1: id      
-      - Field  2: element 
-      - Field  3: xu      
-      - Field  4: yu      
-      - Field  5: zu      
+      - Field  1: id
+      - Field  2: element
+      - Field  3: xu
+      - Field  4: yu
+      - Field  5: zu
     Found 5 columns in total.
 
     Trajectory contains approximately 1362 frames (just a *guess* from the file size of 45.49 MiB).
@@ -105,10 +105,10 @@ Output of bond matrices:
 
 *** Molecule 1: H2O; Representant 1; Distances in pm ***
 
-    H1  H2  O1 
-H1  ***  -   96 
-H2   -  ***  95 
-O1   96  95 *** 
+    H1  H2  O1
+H1  ***  -   96
+H2   -  ***  95
+O1   96  95 ***
 
     Atoms H1, H2 are equivalent.
 
@@ -1451,4 +1451,3 @@ End of trajectory file reached.
     M. Brehm, B. Kirchner; J. Chem. Inf. Model. 2011, 51 (8), pp 2007-2023.   (DOI 10.1021/ci200217w )
 
 *** The End ***
-

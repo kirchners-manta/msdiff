@@ -19,7 +19,11 @@ ZETA_ZZ = 8.1711245653  # dimensionless, from https://doi.org/10.1021/acs.jpcb.3
 
 
 def find_linear_region(
-    data: pd.DataFrame, tol: float, nslice: int = 10, incr: float = 0.01
+    data: pd.DataFrame,
+    tol: float,
+    start_from: float,
+    nslice: int = 10,
+    incr: float = 0.01,
 ) -> list[int]:
     """Find the linear region in the MSD or collective MSD data.
     The MSD data is partitioned into nslice slices, and in each slice, the slope is calculated. If the slope is about 1 within the tolerance, the slice is is gradually increased by incr until the slope is not about 1 anymore.
@@ -33,6 +37,8 @@ def find_linear_region(
         Input data. Has two columns: time and msd/collective msd.
     tol : float
         Tolerance for the slope of the linear region.
+    start_from : float
+        Start the search for a linear region from this time in ps.
     nslice : int
         Number of slices to partition the data set, default is 10.
     incr : float
@@ -44,9 +50,23 @@ def find_linear_region(
         Indices of the first and last time step of the linear region.
         Is (-1, -1) if no linear region is found.
     """
+    # debug
+    # print(data.head())
+
+    # find the maximum index where the time is smaller than start_from
+    idx_add = data[data["time"] < start_from].index.max()
+    if pd.isna(idx_add):
+        idx_add = 0
+    # discard all data points before the start_from time and reset the index (the original index is recovered later)
+    data = data[data["time"] >= start_from].reset_index(drop=True)
+    # determine the MSD value of the now first data point and shift the entire MSD data by this value so that the first data point is zero
+    data["msd"] -= data["msd"].iloc[0]
+
+    # debug
+    # print(data.head())
+
     # use log-log plot to find linear region
     # drop first data point to avoid zero
-
     lnMSD = np.log(data.iloc[:, 1][1:])
     lnTime = np.log(data.iloc[:, 0][1:])
 
@@ -98,7 +118,11 @@ def find_linear_region(
         linreg_final = linreg_data.sort_values(
             ["npoints", "slope_abs"], ascending=[False, True]
         ).iloc[[0]]
-        firststep, laststep = linreg_final["t1"].iloc[0], linreg_final["t2"].iloc[0]
+        # don't forget to add the idx_add to the indices
+        firststep, laststep = (
+            linreg_final["t1"].iloc[0] + idx_add,
+            linreg_final["t2"].iloc[0] + idx_add,
+        )
     else:
         firststep, laststep = -1, -1
 

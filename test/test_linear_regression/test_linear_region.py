@@ -24,6 +24,7 @@ from msdiff import find_linear_region
                 names=["time", "msd", "derivative"],
             ).drop(columns=["derivative"]),
             0.05,
+            0,
             392.0,
             1001.0,
         ),
@@ -35,6 +36,7 @@ from msdiff import find_linear_region
                 names=["time", "msd", "derivative"],
             ).drop(columns=["derivative"]),
             0.07,
+            0,
             17.0,
             1006.0,
         ),
@@ -46,6 +48,7 @@ from msdiff import find_linear_region
                 }
             ),
             0.1,
+            0,
             -1,
             -1,
         ),
@@ -54,7 +57,8 @@ from msdiff import find_linear_region
 def test_find_linear_region(
     msd_file: pd.DataFrame,
     tol: float,
+    start_from: float,
     firststep: float,
     laststep: float,
 ) -> None:
-    assert firststep, laststep == find_linear_region(msd_file, tol)
+    assert firststep, laststep == find_linear_region(msd_file, tol, start_from)

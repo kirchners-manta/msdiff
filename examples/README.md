@@ -5,7 +5,7 @@ This directory contains example files and their expected results.
 ## Self-diffusion coefficient of NTf<sub>2</sub>
 
 In [diffusion/ntf2](./diffusion/ntf2/), there is an [output file](./diffusion/ntf2/msd_from_travis.csv) from a TRAVIS MSD calculation of the anion in a system of [C<sub>2</sub>C<sub>1</sub>Im][NTf<sub>2</sub>] at 350 K.
-The corresponding box length is 6134.48 pm. 
+The corresponding box length is 6134.48 pm.
 The program is run with the following command:
 
 ```bash
@@ -22,7 +22,7 @@ Diffusion coefficient:           D_0 = (      20.931123 ±        0.003736) * 10
 Hummer correction term:          K   = (      14.325316 ±        8.721187) * 10^-12 m^2/s
 Results written to msdiff_out.csv
 ```
-Additionally, the results can be found in the [MSDiff output file](./ntf2/msdiff_out.csv). 
+Additionally, the results can be found in the [MSDiff output file](./ntf2/msdiff_out.csv).
 Please note that in this example, the `--hummer` option is used to calculate the Hummer correction term, where the temperature is set to 350 K, while the viscosity and its uncertainty are not given, thus falling back to the default values.
 
 ## Self-diffusion coefficient from averaged MSD

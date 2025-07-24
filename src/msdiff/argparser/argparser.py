@@ -342,6 +342,15 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
         default=None,
     )
     p.add_argument(
+        "--start-from",
+        type=float,
+        metavar="TAU_START",
+        dest="start_from",
+        help="R|Start the search for a linear region from the given time in ps. Default is 0.",
+        default=0.0,
+        action=action_not_less_than(0.0),
+    )
+    p.add_argument(
         "--tol",
         type=float,
         dest="tolerance",
