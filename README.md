@@ -62,3 +62,8 @@ Examples for the usage are given in the [examples](./examples) folder.
 
 * Currently, the program only supports the MSD or conductivity output format of TRAVIS.
 * The [correction term by Hummer](https://pubs.acs.org/doi/10.1021/jp0477147) (to extrapolate to an infinite box size) is only valid for a cubic box. Other box shapes are not supported yet. [OrthoBoXY](https://doi.org/10.1021/acs.jpcb.3c04492) is supported, see description of the `--orthoboxy` option.
+
+
+**Reference**
+
+T. Frömbgen, P. Zaby, V. Alizadeh, J. L. F. Da Silva, B. Kirchner, T. C. Lourenço, Lessons learned on obtaining reliable dynamic properties for ionic liquids, *ChemPhysChem* (**2025**), e202401048.  DOI: [10.1002/cphc.202401048]( https://doi.org/10.1002/cphc.202401048)
