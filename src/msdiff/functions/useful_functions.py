@@ -53,26 +53,27 @@ def find_linear_region(
     # debug
     # print(data.head())
 
-    # find the maximum index where the time is smaller than start_from
-    idx_add = data[data["time"] < start_from].index.max()
-    if pd.isna(idx_add):
-        idx_add = 0
-    # discard all data points before the start_from time and reset the index (the original index is recovered later)
-    data = data[data["time"] >= start_from].reset_index(drop=True)
-    # determine the MSD value of the now first data point and shift the entire MSD data by this value so that the first data point is zero
-    data["msd"] -= data["msd"].iloc[0]
+    # # find the maximum index where the time is smaller than start_from
+    # idx_add = data[data["time"] < start_from].index.max()
+    # if pd.isna(idx_add):
+    #     idx_add = 0
+    # # discard all data points before the start_from time and reset the index (the original index is recovered later)
+    # data = data[data["time"] >= start_from].reset_index(drop=True)
+    # # determine the MSD value of the now first data point and shift the entire MSD data by this value so that the first data point is zero
+    # data["msd"] -= data["msd"].iloc[0]
 
     # debug
     # print(data.head())
 
-    # use log-log plot to find linear region
-    # drop first data point to avoid zero
-    lnMSD = np.log(data.iloc[:, 1][1:])
-    lnTime = np.log(data.iloc[:, 0][1:])
+    # # use log-log plot to find linear region
+    # # drop first data point to avoid zero
+    # lnMSD = np.log(data.iloc[:, 1][1:])
+    # lnTime = np.log(data.iloc[:, 0][1:])
 
-    # set initial values
+    # initialize empty list to store the intervals
     int_list = []
-    ndata = len(lnTime)
+    # number of data points from first column (the time)
+    ndata = len(data.iloc[:, 0])
 
     # determine the number of intervals to check
     for n in range(2 * nslice - 1):
@@ -82,12 +83,29 @@ def find_linear_region(
         # t1 (index) is the beginning of the interval (at smaller correlation times)
         linear_region = True
         t1 = ndata - int((n + 2) / 2 * ndata / nslice) + 1
-        t2 = ndata - int(n / 2 * ndata / nslice)
+        t2 = ndata - int(n / 2 * ndata / nslice) - 1
 
         while linear_region:
+            # extract region of interest from data
+            region = data.iloc[t1-1:t2+1].copy()
+            # increase t1 and drop row when time is zero to avoid log(0)
+            if region.iloc[0, 0] == 0:
+                t1 += 1
+                region = region.iloc[1:].copy()
+                
+            # use log-log plot to find linear region
+            lnTime = np.log(region.iloc[:, 0])
+            lnMSD = np.log(region.iloc[:, 1])
+            
+            # shift lnMSD so that the first data point is zero
+            lnMSD -= lnMSD[t1-1]
+            # skip when lnMSD is nan
+            if np.isnan(lnMSD[t1-1]):
+                break
+            
             # calculate the slope between two points
-
             slope = (lnMSD[t1] - lnMSD[t2]) / (lnTime[t1] - lnTime[t2])
+            
             # if the slope is nan, exit the loop
             if np.isnan(slope):  # pragma: no cover
                 break
@@ -120,8 +138,8 @@ def find_linear_region(
         ).iloc[[0]]
         # don't forget to add the idx_add to the indices
         firststep, laststep = (
-            linreg_final["t1"].iloc[0] + idx_add,
-            linreg_final["t2"].iloc[0] + idx_add,
+            linreg_final["t1"].iloc[0], # + idx_add,
+            linreg_final["t2"].iloc[0], # + idx_add,
         )
     else:
         firststep, laststep = -1, -1
