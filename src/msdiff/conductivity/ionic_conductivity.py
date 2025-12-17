@@ -171,7 +171,6 @@ def conductivity(args: argparse.Namespace) -> int:
     (firststep, laststep) = find_linear_region(
         data[["time", "total_eh"]],
         args.tolerance,
-        args.start_from,
     )
 
     # empty list to store the results

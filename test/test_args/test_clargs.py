@@ -29,7 +29,7 @@ def test_defaults() -> None:
     assert isinstance(args.conductivity, bool)
     assert args.conductivity == False
 
-    assert isinstance(args.hummer, tuple)
+    assert isinstance(args.hummer, list)
     assert len(args.hummer) == 3
     assert isinstance(args.hummer[0], float)
     assert isinstance(args.hummer[1], float)
