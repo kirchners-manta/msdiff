@@ -149,6 +149,10 @@ dmypy.json
 # pytype static type analyzer
 .pytype/
 
+###################
+# added by developer
+
+.vscode/
 
 # TRAVIS
 !travis.log

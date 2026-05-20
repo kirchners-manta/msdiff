@@ -6,7 +6,10 @@ channels:
 dependencies:
   - black
   - coverage
+  - lmfit
+  - matplotlib
   - numpy
+  - pandas
   - pre-commit
   - pylint
   - pytest

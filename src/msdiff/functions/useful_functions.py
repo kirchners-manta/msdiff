@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import lmfit # type: ignore
+import lmfit
 import numpy as np
 import pandas as pd
 
@@ -21,7 +21,7 @@ ZETA_ZZ = 8.1711245653  # dimensionless, from https://doi.org/10.1021/acs.jpcb.3
 def find_linear_region(
     data: pd.DataFrame,
     tol: float,
-    nslice: int = 10,
+    nslice: int = 25,
     incr: float = 0.01,
 ) -> list[int]:
     """Find the linear region in the MSD or collective MSD data.
@@ -29,7 +29,7 @@ def find_linear_region(
     The search is started at the end of the data set and goes backwards (i.e., from larger to smaller correlation times).
     After one slice is finished, the next slice is started at half the size of the previous slice. That means, effectively, there are 2 * nslice - 1 slices to check.
     The slice with the largest number of data points is selected as the linear region.
-    
+
     The slope is calculated in a log-log plot, i.e., ln(MSD) vs ln(time).
     To deal with MSD data that have a notable ballistic regime at short times, the ln(MSD) is shifted so that the first data point is zero.
 
@@ -40,7 +40,7 @@ def find_linear_region(
     tol : float
         Tolerance for the slope of the linear region.
     nslice : int
-        Number of slices to partition the data set, default is 10.
+        Number of slices to partition the data set, default is 25.
     incr : float
         Increment for the linear region search, default is 0.01.
 
@@ -50,7 +50,6 @@ def find_linear_region(
         Indices of the first and last time step of the linear region.
         Is (-1, -1) if no linear region is found.
     """
-
 
     # initialize empty list to store the intervals
     int_list = []
@@ -69,27 +68,36 @@ def find_linear_region(
 
         while linear_region:
             # extract region of interest from data
-            region = data.iloc[t1-1:t2+1].copy()
-            
+            region = data.iloc[t1 - 1 : t2 + 1].copy()
+
             # shift dataframe so that both time and MSD start from 0
-            region.iloc[:, 0] = region.iloc[:, 0] - region.iloc[0, 0] # type: ignore
-            region.iloc[:, 1] = region.iloc[:, 1] - region.iloc[0, 1] # type: ignore
-                
+            region_values = region.iloc[:, :2].astype(float)
+            region.iloc[:, :2] = region_values.subtract(
+                region_values.iloc[0], axis="columns"
+            )
+
             # use log-log plot to find linear region
             lnTime = np.log(region.iloc[1:, 0])
             lnMSD = np.log(region.iloc[1:, 1])
-            
-            # calculate the slope between two points
-            slope = (lnMSD[t1] - lnMSD[t2]) / (lnTime[t1] - lnTime[t2])
-            
+
+            # calculate the slope
+
+            # either from a two-point formula
+            # slope = (lnMSD[t1] - lnMSD[t2]) / (lnTime[t1] - lnTime[t2])
+
+            # or from a linear regression
+            slope, _, r2, _ = lmfit_linear_regression(
+                lnTime, lnMSD, np.zeros_like(lnMSD)
+            )
+
             # if the slope is nan, exit the loop
             if np.isnan(slope):  # pragma: no cover
                 break
-            elif np.abs(slope - 1.0) > tol:
-                # if the slope is not within tolerance, go to the next interval
+            # if the slope is not within tolerance or the R^2 value is not close to 1, exit the loop
+            elif np.abs(slope - 1.0) > tol or r2 < 0.95:
                 linear_region = False
+            # if the slope is within tolerance and the R^2 value is close to 1, store the interval and increase it
             else:
-                # if the slope is within tolerance, append the interval to the list
                 # attention: t1 and t2 are indices, not time steps
                 int_list.append(
                     [
@@ -184,7 +192,7 @@ def lmfit_linear_regression(
     y : np.ndarray
         y-values
     e : np.ndarray
-        Uncertainties of the y-values
+        Uncertainties of the y-values (in this case, their standard errors). If all values are zero, a simple linear regression is performed. Otherwise, a weighted linear regression is performed.
 
     Returns
     -------
@@ -198,10 +206,10 @@ def lmfit_linear_regression(
     # perform the fit
     # if there are no uncertainties, perform a simple linear regression
     if np.all(e == 0):
-        result = lmod.fit(y, params, x=x)
+        result = lmod.fit(y, params, x=x, scale_covar=False)
     # if there are uncertainties, perform a weighted linear regression
     else:
-        result = lmod.fit(y, params, x=x, weights=1 / e)
+        result = lmod.fit(y, params, x=x, weights=1 / e, scale_covar=False)
 
     return [
         float(result.params["slope"].value),
@@ -319,7 +327,7 @@ def calc_transport_numbers(
     """
 
     # s = sigma, eh = Einstein-Helfand (all terms), ne = Nernst-Einstein (just self terms)
-    # err = error
+    # err = uncertainty
     # mm = minus minus, pp = plus plus, pm = plus minus
     # t = transport number, ion = ionicity, id = ideal
 
@@ -367,14 +375,13 @@ def calc_transport_numbers(
         ion_err = np.sqrt((s_eh_err / s_ne) ** 2 + (s_eh * s_ne_err / s_ne**2) ** 2)
 
         # the ideal transport numbers are calculated from the self terms only
-        t_mm_id = s_mm_self / s_ne
+        t_mm_id = s_mm_self / (s_mm_self + s_pp_self)
         t_mm_id_err = np.sqrt(
-            (s_mm_self_err / s_ne) ** 2 + (s_mm_self * s_ne_err / s_ne**2) ** 2
+            (s_mm_self**2 * s_pp_self_err**2 + s_pp_self**2 * s_mm_self_err**2)
+            / (s_mm_self + s_pp_self) ** 4
         )
-        t_pp_id = s_pp_self / s_ne
-        t_pp_id_err = np.sqrt(
-            (s_pp_self_err / s_ne) ** 2 + (s_pp_self * s_ne_err / s_ne**2) ** 2
-        )
+        t_pp_id = s_pp_self / (s_mm_self + s_pp_self)
+        t_pp_id_err = t_mm_id_err  # the uncertainties of the ideal transport numbers are identical
 
     # there is no physical meaning in the transport number for the plus minus terms. it is equally attributed to both ions
     t_pm = s_pm / s_eh
@@ -434,5 +441,28 @@ def calc_transport_numbers(
             "t_pp_err": float,
         }
     )
+
+    # check if the transport numbers are within physical limits (0 to 1)
+    if (
+        any([t_mm, t_mm_id, t_pp, t_pp_id]) < 0
+        or any([t_mm, t_mm_id, t_pp, t_pp_id]) > 1
+    ):
+        print(
+            "\n*** Warning: Transport numbers are outside of physical limits (0 to 1). Please check the input data and the results.\n"
+        )
+    # check if + and - transport numbers add up to 1
+    if not np.isclose(t_mm + t_pp, 1, atol=0.01) or not np.isclose(
+        t_mm_id + t_pp_id, 1, atol=0.01
+    ):
+        print(
+            "\n*** Warning: + and - transport numbers do not add up to 1. Please check the input data and the results.\n"
+        )
+    # check if the uncertainties are identical
+    if not np.isclose(t_mm_err, t_pp_err, atol=0.01) or not np.isclose(
+        t_mm_id_err, t_pp_id_err, atol=0.01
+    ):
+        print(
+            "\n*** Warning: Uncertainties of + and - transport numbers are not identical. Please check the input data and the results.\n"
+        )
 
     return a_posteriori

@@ -57,7 +57,7 @@ from msdiff import find_linear_region
                 names=["time", "msd", "derivative"],
             ),
             0.03,
-            2, 
+            2,
             10000,
         ),
         (

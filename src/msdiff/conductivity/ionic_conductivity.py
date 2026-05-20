@@ -35,7 +35,7 @@ def conductivity(args: argparse.Namespace) -> int:
         first_line = f.readline()
         n_columns = len(first_line.split(";"))
 
-    # if 'avg' option is true, the file contains the average values and the standard deviation
+    # if 'avg' option is true, the file contains the average values and the standard error
     # the file can contain either just the total conductivity or all contributions
 
     # average but only total conductivity
@@ -123,7 +123,7 @@ def conductivity(args: argparse.Namespace) -> int:
         # drop empty column
         data = data.drop(columns=[" "])
 
-        # add standard deviation columns and set them to zero
+        # add standard error columns and set them to zero
         data["anion_self_std"] = data["cation_self_std"] = data["anion_cross_std"] = (
             data["cation_cross_std"]
         ) = data["anion_cation_std"] = data["total_eh_std"] = 0.0
