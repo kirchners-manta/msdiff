@@ -93,47 +93,17 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
         )
 
     # read data from file
-    data = pd.read_csv(
-        args.file, sep=";", skiprows=1, names=["time", "msd", "msd_std"]
-    ).astype(float)
+    msd_data = read_input_diffusion(args.file[0], args.avg, args.species)
+    
+    # read OrthoBoXY data if given
+    if args.orthoboxy is not None:
+        msd_data_z = read_input_diffusion(args.orthoboxy, args.avg, args.species)
+    else:
+        msd_data_z = None
 
     # debug
     # print(data)
-
-    if not args.avg:
-        # if 'avg' option is false, the file contains the MSD for a single molecule and the derivative (not needed), is skipped.
-        data["msd_std"] = 0.0
-
-    # determine linear region
-    firststep, laststep = find_linear_region(
-        data[["time", "msd"]],
-        args.tolerance,
-    )
-
-    # debug
-    # print(f"firststep: {firststep}, laststep: {laststep}")
-
-    # perform linear regression in the linear region
-    if firststep == -1 or laststep == -1:
-        raise ValueError(
-            "No linear region found in the data. Please check the input file and the tolerance."
-        )
-    else:
-        (
-            slope,
-            delta_slope,
-            r2,
-            npoints_fit,
-        ) = linear_fit(
-            data,
-            firststep,
-            laststep,
-        )
-
-    # divide D and delta D by 2*dimensions
-    diff = slope / (2 * args.dimensions)
-    delta_diff = delta_slope / (2 * args.dimensions)
-
+    
     # hummer correction
     if args.cubic:
         k_hum, delta_k_hum = calc_Hummer_correction(
@@ -145,31 +115,60 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
     else:
         k_hum = delta_k_hum = 0.0
 
-    # OrthoBoXY viscosity
-    if args.orthoboxy is not None:
-        data_z = pd.read_csv(
-            args.orthoboxy, sep=";", skiprows=1, names=["time", "msd", "msd_std"]
-        ).astype(float)
-
-        if not args.avg:
-            # if 'avg' option is false, the file contains the MSD for a single molecule and the derivative (not needed), is skipped.
-            data_z["msd_std"] = 0.0
-
-        slope_z, delta_slope_z, _, _ = linear_fit(
-            data_z,
-            firststep,
-            laststep,
+    # determine linear region
+    for i in range(args.species):
+    
+        firststep, laststep = find_linear_region(
+            msd_data[["time", f"msd_{i+1}"]],
+            args.tolerance,
         )
-        diff_z = slope_z / 2  # dimension is 1, only z direction
-        delta_diff_z = delta_slope_z / 2
 
         # debug
-        # print(diff, delta_diff, diff_z, delta_diff_z, args.hummer[0], args.length[2])
+        # print(f"firststep: {firststep}, laststep: {laststep}")
 
-        eta, delta_eta = calc_orthoboxy_viscosity(
-            diff, delta_diff, diff_z, delta_diff_z, args.hummer[0], args.length[2]
-        )
+        # perform linear regression in the linear region
+        if firststep == -1 or laststep == -1:
+            raise ValueError(
+                "No linear region found in the data. Please check the input file and the tolerance."
+            )
+        else:
+            (
+                slope,
+                delta_slope,
+                r2,
+                npoints_fit,
+            ) = linear_fit(
+                msd_data[["time", f"msd_{i+1}", f"msd_std_{i+1}"]],
+                firststep,
+                laststep,
+            )
 
+        # divide D and delta D by 2*dimensions
+        diff = slope / (2 * args.dimensions)
+        delta_diff = delta_slope / (2 * args.dimensions)
+        
+        # compute orthoboxy viscosity
+        if args.orthoboxy is not None:
+            
+            # determine diffusion along z first
+            slope_z, delta_slope_z, _, _ = linear_fit(
+                msd_data_z,
+                firststep,
+                laststep,
+            )
+            diff_z = slope_z / 2  # dimension is 1, only z direction
+            delta_diff_z = delta_slope_z / 2
+
+            # debug
+            # print(diff, delta_diff, diff_z, delta_diff_z, args.hummer[0], args.length[2])
+
+            # viscosity
+            eta, delta_eta = calc_orthoboxy_viscosity(
+                diff, delta_diff, diff_z, delta_diff_z, args.hummer[0], args.length[2]
+            )
+
+    
+    ##### continue here
     # create a dictionary with the results
     results = {
         "diffusion": {
@@ -198,3 +197,47 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
     print_results_to_file(results, args.output)
 
     return 0
+
+
+def read_input_diffusion(file: str, avg: bool, species: int) -> pd.DataFrame:
+    """Reads the input file for diffusion coefficient calculation.
+
+    Parameters
+    ----------
+    file : str
+        The path to the input file.
+    avg : bool
+        Whether the input file contains averaged data (with standard error) or not.
+    species : int
+        The number of species in the system.
+
+    Returns
+    -------
+    pd.DataFrame
+        The input data as a pandas DataFrame.
+    """
+
+    # read data from file
+    if not avg:
+        # number of columns is 1 (time) + nspec (msd) 
+        colnames = ["time"] + [f"msd_{i+1}" for i in range(species)]
+        # read to pandas dataframe
+        data = pd.read_csv(
+            file, sep=";", skiprows=1, names=colnames
+        ).astype(float)
+        # add columns for msd_std with value 0.0
+        for i in range(species):
+            data[f"msd_std_{i+1}"] = 0.0
+    else:
+        # number of columns is 1 (time) + nspec (msd) + nspec (msd_stderr)
+        colnames = [f"msd_{i+1}" for i in range(species)] + [
+            f"msd_std_{i+1}" for i in range(species)
+        ]
+        # order colnames so that msd and msd_std of the same species are next to each other
+        colnames = ["time"] + [col for pair in zip(colnames[1 : 1 + species], colnames[1 + species :]) for col in pair]
+        # read to pandas dataframe
+        data = pd.read_csv(
+            file, sep=";", skiprows=1, names=colnames
+        ).astype(float)
+    
+    return data

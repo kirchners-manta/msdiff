@@ -287,6 +287,15 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
         default=False,
     )
     p.add_argument(
+        "--species",
+        type=int,
+        metavar="N",
+        dest="species",
+        help="R|Number of species to be handled by the code.",
+        action=action_not_less_than(1),
+        default=argparse.SUPPRESS,
+    )
+    p.add_argument(
         "--from-travis",
         action="store_true",
         dest="from_travis",
