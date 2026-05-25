@@ -14,10 +14,13 @@ from ..diffusion import diffusion_coefficient
 def console_entry_point(argv: Sequence[str] | None = None) -> int:
     # get arguments from command line and parse them
     args = parser().parse_args(argv)
-    
+
     # if the user did not specify the number of species, determine the default based on whether conductivity or diffusion coefficient is being calculated
     if not hasattr(args, "species"):
         args.species = 2 if args.conductivity else 1
+    # same for the uncertainty type
+    if not hasattr(args, "uncertainty"):
+        args.uncertainty = "var" if args.conductivity else "none"
 
     if not args.conductivity:
         # hand over arguments to diffusion coefficient function

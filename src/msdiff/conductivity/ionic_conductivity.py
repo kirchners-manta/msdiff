@@ -5,13 +5,11 @@ Main file for the ionic conductivity calculation.
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from ..functions import calc_transport_numbers, find_linear_region, linear_fit
-from .output import print_results_to_file, print_results_to_stdout
+from .output import print_program_header, print_results_to_file, print_results_to_stdout
 
 
 def conductivity(args: argparse.Namespace) -> int:
@@ -28,201 +26,20 @@ def conductivity(args: argparse.Namespace) -> int:
         Exit code of the program
     """
 
+    # print program header
+    print_program_header()
+
     # read data from file
-
-    # determine number of columns in the file
-    with open(args.file, encoding="utf-8") as f:
-        first_line = f.readline()
-        n_columns = len(first_line.split(";"))
-
-    # if 'avg' option is true, the file contains the average values and the standard error
-    # the file can contain either just the total conductivity or all contributions
-
-    # average but only total conductivity
-    if args.avg and n_columns == 3:
-        data = pd.read_csv(
-            args.file,
-            sep=";",
-            skiprows=1,
-            names=[
-                "time",
-                "total_eh",
-                "total_eh_std",
-            ],
-        ).astype(float)
-
-        # add columns for all contributions and set them to zero
-        data["anion_self"] = data["cation_self"] = data["anion_cross"] = data[
-            "cation_cross"
-        ] = data["anion_cation"] = 0.0
-        data["anion_self_std"] = data["cation_self_std"] = data["anion_cross_std"] = (
-            data["cation_cross_std"]
-        ) = data["anion_cation_std"] = 0.0
-
-    # average and all contributions
-    elif args.avg and n_columns == 13:
-        data = pd.read_csv(
-            args.file,
-            sep=";",
-            skiprows=1,
-            names=[
-                "time",
-                "anion_self",
-                "anion_self_std",
-                "cation_self",
-                "cation_self_std",
-                "anion_cross",
-                "anion_cross_std",
-                "cation_cross",
-                "cation_cross_std",
-                "anion_cation",
-                "anion_cation_std",
-                "total_eh",
-                "total_eh_std",
-            ],
-        ).astype(float)
-
-    # not average and only total conductivity
-    elif not args.avg and n_columns == 2:
-        data = pd.read_csv(
-            args.file,
-            sep=";",
-            skiprows=1,
-            names=[
-                "time",
-                "total_eh",
-            ],
-        ).astype(float)
-
-        # add columns for all contributions and set them to zero
-        data["total_eh_std"] = 0.0
-        data["anion_self"] = data["cation_self"] = data["anion_cross"] = data[
-            "cation_cross"
-        ] = data["anion_cation"] = 0.0
-        data["anion_self_std"] = data["cation_self_std"] = data["anion_cross_std"] = (
-            data["cation_cross_std"]
-        ) = data["anion_cation_std"] = 0.0
-
-    elif not args.avg and (n_columns == 8 or n_columns == 7):
-        data = pd.read_csv(
-            args.file,
-            sep=";",
-            skiprows=1,
-            names=[
-                "time",
-                "anion_self",
-                "cation_self",
-                "anion_cross",
-                "cation_cross",
-                "anion_cation",
-                "total_eh",
-                " ",
-            ],
-        ).astype(float)
-
-        # drop empty column
-        data = data.drop(columns=[" "])
-
-        # add standard error columns and set them to zero
-        data["anion_self_std"] = data["cation_self_std"] = data["anion_cross_std"] = (
-            data["cation_cross_std"]
-        ) = data["anion_cation_std"] = data["total_eh_std"] = 0.0
-
-    # calculate total anion and cation conductivity
-    data["anion_tot"] = data["anion_self"] + data["anion_cross"]
-    data["anion_tot_std"] = np.sqrt(
-        data["anion_self_std"] ** 2 + data["anion_cross_std"] ** 2
-    )
-    data["cation_tot"] = data["cation_self"] + data["cation_cross"]
-    data["cation_tot_std"] = np.sqrt(
-        data["cation_self_std"] ** 2 + data["cation_cross_std"] ** 2
-    )
-    data["total_ne"] = data["anion_self"] + data["cation_self"]
-    data["total_ne_std"] = np.sqrt(
-        data["anion_self_std"] ** 2 + data["cation_self_std"] ** 2
-    )
-
-    # sort columns
-    data = data[
-        [
-            "time",
-            "anion_self",
-            "anion_self_std",
-            "anion_cross",
-            "anion_cross_std",
-            "anion_tot",
-            "anion_tot_std",
-            "cation_self",
-            "cation_self_std",
-            "cation_cross",
-            "cation_cross_std",
-            "cation_tot",
-            "cation_tot_std",
-            "anion_cation",
-            "anion_cation_std",
-            "total_ne",
-            "total_ne_std",
-            "total_eh",
-            "total_eh_std",
-        ]
-    ]
+    msd_data = read_input_conductivity(args.file, args.uncertainty, args.species)
 
     # find linear region, based on EH conductivity
     (firststep, laststep) = find_linear_region(
-        data[["time", "total_eh"]],
+        msd_data[["time", "total_eh"]],
         args.tolerance,
     )
 
-    # empty list to store the results
-    result_list = []
-    # list of contributions
-    cols = [
-        "anion_self",
-        "anion_cross",
-        "anion_tot",
-        "cation_self",
-        "cation_cross",
-        "cation_tot",
-        "anion_cation",
-        "total_ne",
-        "total_eh",
-    ]
-
-    # loop over all contributions
-    for _, data_set in enumerate(cols):
-        # select data for one molecule
-        cond_data = data[["time", data_set, f"{data_set}_std"]]
-
-        # calculate conductivity
-        # if no linear region is found, the function is not called
-        # and the results are set to zero
-        if firststep != -1 and laststep != -1:
-            cond, delta_cond, r2, npoints_fit = linear_fit(
-                cond_data,
-                firststep,
-                laststep,
-            )
-        else:
-            cond = 0.0
-            delta_cond = 0.0
-            r2 = 0.0
-            npoints_fit = 0
-
-        # summarize results in a list
-        result_list.append(
-            [
-                data_set,
-                cond,
-                delta_cond,
-                r2,
-                cond_data["time"].iloc[firststep],
-                cond_data["time"].iloc[laststep],
-                npoints_fit,
-            ]
-        )
-    # summarize results in a data frame
+    # initialize dataframe for results
     results = pd.DataFrame(
-        data=result_list,
         columns=[
             "contribution",
             "sigma",
@@ -232,38 +49,156 @@ def conductivity(args: argparse.Namespace) -> int:
             "t_end",
             "n_data",
         ],
-    ).astype(
-        {
-            "contribution": str,
-            "sigma": float,
-            "delta_sigma": float,
-            "r2": float,
-            "t_start": float,
-            "t_end": float,
-            "n_data": int,
-        }
     )
 
-    # calculate a posteriori quantities
-    a_posteriori = calc_transport_numbers(results)
-
-    # rename contributions in results for proper output
-    results = results.replace(
-        {
-            "anion_self": "anion self",
-            "anion_cross": "anion cross",
-            "anion_tot": "anion total",
-            "cation_self": "cation self",
-            "cation_cross": "cation cross",
-            "cation_tot": "cation total",
-            "anion_cation": "anion-cation",
-            "total_ne": "Nernst-Einstein",
-            "total_eh": "Einstein-Helfand",
-        }
+    # loop over all contributions
+    contributions = (
+        [f"msd_{i+1}_self" for i in range(args.species)]
+        + [f"msd_{i+1}_cross" for i in range(args.species)]
+        + [
+            f"msd_{i+1}_{j+1}"
+            for i in range(args.species)
+            for j in range(i + 1, args.species)
+        ]
+        + ["total_eh"]
     )
+    for c, data_set in enumerate(contributions):
 
-    print_results_to_stdout(results, a_posteriori)
+        # perform linear fit
+        if firststep == -1 or laststep == -1:
+            raise ValueError(
+                "No linear region found in the data. Please check the input file and the tolerance."
+            )
+        else:
+            cond, delta_cond, r2, npoints_fit = linear_fit(
+                msd_data[["time", data_set, f"{data_set}_std"]],
+                firststep,
+                laststep,
+            )
 
-    print_results_to_file(results, a_posteriori, args.output)
+        # add results to dataframe
+        results.loc[c] = {
+            "contribution": data_set,
+            "sigma": cond,
+            "delta_sigma": delta_cond,
+            "r2": r2,
+            "t_start": float(msd_data["time"].iloc[firststep]),
+            "t_end": float(msd_data["time"].iloc[laststep]),
+            "n_data": npoints_fit,
+        }
+
+    # debug
+    # print(results)
+
+    # calculate transport numbers
+    transport_numbers = calc_transport_numbers(results, args.species)
+
+    print_results_to_stdout(results, transport_numbers)
+    print_results_to_file(results, transport_numbers, args.output)
 
     return 0
+
+
+def read_input_conductivity(file: str, uncert: str, species: int) -> pd.DataFrame:
+    """Read input data from file
+
+    Parameters
+    ----------
+    file : str
+        Input file
+    uncert : str
+        Type of uncertainty in the input file, either "std", "var" or "none"
+    species : int
+        Number of species in the system
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe containing the input data
+    """
+
+    if uncert == "none":
+        # number of columns is 1 (time) + 1 (total conductivity) + 2 * nspec (self and cross conductivity) + nspec * (nspec - 1) / 2 (two-body contributions)
+        ncols = 1 + 1 + 2 * species + (species * (species - 1)) // 2
+        colnames = (
+            ["time"]
+            + [f"msd_{i+1}_self" for i in range(species)]
+            + [f"msd_{i+1}_cross" for i in range(species)]
+            + [
+                f"msd_{i+1}_{j+1}"
+                for i in range(species)
+                for j in range(i + 1, species)
+            ]
+            + ["total_eh"]
+        )
+
+        data = pd.read_csv(
+            file,
+            sep=";",
+            skiprows=1,
+        ).astype(float)
+
+        # if there are more columns in the file than expected, drop them
+        ncols_file = data.shape[1]
+        if ncols_file > ncols:
+            data = data.iloc[:, :ncols]
+        data.columns = colnames
+
+        # add columns for standard error and set them to zero
+        for i in range(species):
+            data[f"msd_{i+1}_self_std"] = 0.0
+            data[f"msd_{i+1}_cross_std"] = 0.0
+            for j in range(i + 1, species):
+                data[f"msd_{i+1}_{j+1}_std"] = 0.0
+        data["total_eh_std"] = 0.0
+    else:
+        # number of columns is 1 (time) + [1 (total conductivity) + 2 * nspec (self and cross conductivity) + nspec * (nspec - 1) / 2 (two-body contributions)] * 2 data and uncertainty)
+        ncols = 1 + 2 + 4 * species + (species * (species - 1))
+        colnames = (
+            ["time"]
+            + [f"msd_{i+1}_{j}" for i in range(species) for j in ["self", "self_std"]]
+            + [f"msd_{i+1}_{j}" for i in range(species) for j in ["cross", "cross_std"]]
+            + [
+                f"msd_{i+1}_{j+1}{k}"
+                for i in range(species)
+                for j in range(i + 1, species)
+                for k in ["", "_std"]
+            ]
+            + ["total_eh"]
+            + [f"total_eh_std"]
+        )
+
+        # debug
+        # print(colnames)
+
+        data = pd.read_csv(
+            file,
+            sep=";",
+            skiprows=1,
+        ).astype(float)
+
+        # if there are more columns in the file than expected, drop them
+        ncols_file = data.shape[1]
+        if ncols_file > ncols:
+            data = data.iloc[:, :ncols]
+        data.columns = colnames
+
+        if uncert == "var":
+            # convert variance to standard deviation
+            for i in range(species):
+                data[f"msd_{i+1}_self_std"] = data[f"msd_{i+1}_self_std"].apply(
+                    lambda x: x**0.5
+                )
+                data[f"msd_{i+1}_cross_std"] = data[f"msd_{i+1}_cross_std"].apply(
+                    lambda x: x**0.5
+                )
+                for j in range(i + 1, species):
+                    data[f"msd_{i+1}_{j+1}_std"] = data[f"msd_{i+1}_{j+1}_std"].apply(
+                        lambda x: x**0.5
+                    )
+            data["total_eh_std"] = data["total_eh_std"].apply(lambda x: x**0.5)
+
+    # debug
+    # print(data)
+
+    return data

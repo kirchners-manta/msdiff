@@ -23,26 +23,22 @@ def test_defaults() -> None:
         f"-f {example_file}".split()
     )  # add split because, the flags have to be given as arguments as well
 
-    assert isinstance(args.avg, bool)
-    assert args.avg == False
-
     assert isinstance(args.conductivity, bool)
     assert args.conductivity == False
 
     assert isinstance(args.hummer, list)
     assert len(args.hummer) == 3
-    assert isinstance(args.hummer[0], float)
-    assert isinstance(args.hummer[1], float)
-    assert isinstance(args.hummer[2], float)
-    assert args.hummer[0] == 350.00
-    assert args.hummer[1] == 0.008277
-    assert args.hummer[2] == 0.005039
+    assert args.hummer == [0, 0, 0]
 
     assert isinstance(args.from_travis, bool)
     assert args.from_travis == False
 
     assert isinstance(args.length, type(None))
     assert args.length == None
+
+    assert hasattr(args, "species") == False
+    assert hasattr(args, "uncertainty") == False
+    assert args.orthoboxy == None
 
     assert isinstance(args.dimensions, int)
     assert args.dimensions == 3
@@ -67,17 +63,19 @@ def test_fail_type() -> None:
         with pytest.raises(SystemExit):
             parser.parse_args("-l abc".split())
         with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --temp abc".split())
+            parser.parse_args(f"-l 5000 -f {example_file} --species abc".split())
+        with pytest.raises(SystemExit):
+            parser.parse_args(f"-l 5000 -f {example_file} --uncertainty abc".split())
         with pytest.raises(SystemExit):
             parser.parse_args(f"-l 5000 -f {example_file} --tol abc".split())
         with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --visco abc".split())
-        with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --d_visco abc".split())
-        with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --n abc".split())
+            parser.parse_args(f"-l 5000 -f {example_file} --dim abc".split())
         with pytest.raises(SystemExit):
             parser.parse_args(f"-l 5000 -f {Path(__file__).parent / 'data'} ".split())
+        with pytest.raises(SystemExit):
+            parser.parse_args(
+                f"-l 5000 -f {example_file} -z {Path(__file__).parent / 'data'}".split()
+            )
         with pytest.raises(SystemExit):
             parser.parse_args(
                 f"-l 5000 -f {Path(__file__).parent / 'data' / 'yasdas'}".split()
@@ -99,25 +97,19 @@ def test_fail_value() -> None:
         with pytest.raises(SystemExit):
             parser.parse_args("-l 1".split())
         with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --temp 123".split())
+            parser.parse_args(f"-l 5000 -f {example_file} --species 0".split())
+        with pytest.raises(SystemExit):
+            parser.parse_args(f"-l 5000 -f {example_file} --uncertainty stderr".split())
         with pytest.raises(SystemExit):
             parser.parse_args(f"-l 5000 -f {example_file} --tol 0.31".split())
         with pytest.raises(SystemExit):
             parser.parse_args(f"-l 5000 -f {example_file} --tol 0".split())
         with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --visco -0.1".split())
+            parser.parse_args(f"-l 5000 -f {example_file} --dim 4".split())
         with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --d_visco -0.1".split())
+            parser.parse_args(f"-l 5000 -f {example_file} --hummer -1.0".split())
         with pytest.raises(SystemExit):
-            parser.parse_args(f"-l 5000 -f {example_file} --n 0.2".split())
-        with pytest.raises(SystemExit):
-            parser.parse_args(
-                f"-l 5000 -f {example_file} --hummer 50.0 1.0 1.0".split()
-            )
-        with pytest.raises(SystemExit):
-            parser.parse_args(
-                f"-l 5000 -f {example_file} --hummer 150.0 0.0 1.0".split()
-            )
+            parser.parse_args(f"-l 5000 -f {example_file} --hummer 150.0 0.0".split())
         with pytest.raises(SystemExit):
             parser.parse_args(
                 f"-l 5000 -f {example_file} --hummer 150.0 1.0 -0.1".split()

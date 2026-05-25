@@ -245,15 +245,25 @@ def calc_Hummer_correction(
     """
 
     # calculate the Hummer correction term
-    k_hum = KBOLTZ * ZETA_HUMMER * temp * 1e24 / (6 * np.pi * viscosity * box_length)
-    delta_k_hum = (
-        KBOLTZ
-        * ZETA_HUMMER
-        * temp
-        * 1e24
-        * delta_viscosity
-        / (6 * np.pi * viscosity**2 * box_length)
-    )
+    if box_length == 0:
+        k_hum = delta_k_hum = 0.0
+    elif viscosity == 0:
+        k_hum = delta_k_hum = 0.0
+        print(
+            "Info: No viscosity given, set to zero. Hummer correction will be zero.\n"
+        )
+    else:
+        k_hum = (
+            KBOLTZ * ZETA_HUMMER * temp * 1e24 / (6 * np.pi * viscosity * box_length)
+        )
+        delta_k_hum = (
+            KBOLTZ
+            * ZETA_HUMMER
+            * temp
+            * 1e24
+            * delta_viscosity
+            / (6 * np.pi * viscosity**2 * box_length)
+        )
 
     return [k_hum, delta_k_hum]
 
@@ -312,157 +322,142 @@ def calc_orthoboxy_viscosity(
 
 def calc_transport_numbers(
     data: pd.DataFrame,
+    species: int,
 ) -> pd.DataFrame:
-    """Calculate the a posteriori quantities for the transport numbers and ionicity.
+    """Calculate ideal and real transport numbers for each species in the system.
 
     Parameters
     ----------
     data : pd.DataFrame
-        Results of the conductivity calculation i.e., the contributions to the conductivity.
+        Contributions to the conductivity.
+    species : int
+        Number of species in the system.
 
     Returns
     -------
     pd.DataFrame
-        A posteriori quantities for the transport numbers and ionicity.
+        Transport numbers.
     """
 
-    # s = sigma, eh = Einstein-Helfand (all terms), ne = Nernst-Einstein (just self terms)
-    # err = uncertainty
-    # mm = minus minus, pp = plus plus, pm = plus minus
-    # t = transport number, ion = ionicity, id = ideal
+    def _propagate_ratio(
+        numerator_matrix: np.ndarray,
+        values: np.ndarray,
+        errors: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Propagate independent uncertainties for transport numbers.
 
-    s_eh = data.loc[data["contribution"] == "total_eh", "sigma"].values[0]
-    s_eh_err = data.loc[data["contribution"] == "total_eh", "delta_sigma"].values[0]
-    s_ne = data.loc[data["contribution"] == "total_ne", "sigma"].values[0]
-    s_ne_err = data.loc[data["contribution"] == "total_ne", "delta_sigma"].values[0]
-    s_mm_tot = data.loc[data["contribution"] == "anion_tot", "sigma"].values[0]
-    s_mm_tot_err = data.loc[data["contribution"] == "anion_tot", "delta_sigma"].values[
-        0
+        Parameters
+        ----------
+        numerator_matrix : np.ndarray
+            Matrix that maps the independent conductivity contributions to the
+            numerator of each transport number.
+        values : np.ndarray
+            Values of the independent conductivity contributions.
+        errors : np.ndarray
+            Uncertainties of the independent conductivity contributions.
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray]
+            Transport numbers and their propagated uncertainties.
+        """
+
+        total = np.sum(values)
+        if total == 0:
+            zeros = np.zeros(numerator_matrix.shape[0])
+            return zeros, zeros
+
+        # matrix-vector product: each row of numerator_matrix selects the
+        # contributions that belong to one species
+        numerators = numerator_matrix @ values
+        jacobian = (numerator_matrix * total - numerators[:, np.newaxis]) / total**2
+        variances = (jacobian**2) @ (errors**2)
+        return numerators / total, np.sqrt(np.clip(variances, 0.0, None))
+
+    # collect all conductivity contributions once, then reshape them into arrays
+    # that are easier to use for vectorized transport-number calculations
+    contribution_data = data.set_index("contribution")[["sigma", "delta_sigma"]]
+
+    self_labels = [f"msd_{i+1}_self" for i in range(species)]
+    cross_labels = [f"msd_{i+1}_cross" for i in range(species)]
+    pair_indices = np.triu_indices(species, k=1)
+    pair_labels = [
+        f"msd_{i+1}_{j+1}" for i in range(species) for j in range(i + 1, species)
     ]
-    s_mm_self = data.loc[data["contribution"] == "anion_self", "sigma"].values[0]
-    s_mm_self_err = data.loc[
-        data["contribution"] == "anion_self", "delta_sigma"
-    ].values[0]
-    s_pp_tot = data.loc[data["contribution"] == "cation_tot", "sigma"].values[0]
-    s_pp_tot_err = data.loc[data["contribution"] == "cation_tot", "delta_sigma"].values[
-        0
-    ]
-    s_pp_self = data.loc[data["contribution"] == "cation_self", "sigma"].values[0]
-    s_pp_self_err = data.loc[
-        data["contribution"] == "cation_self", "delta_sigma"
-    ].values[0]
-    s_pm = data.loc[data["contribution"] == "anion_cation", "sigma"].values[0]
-    s_pm_err = data.loc[data["contribution"] == "anion_cation", "delta_sigma"].values[0]
 
-    # calculate a posteriori quantities
+    self_terms = contribution_data.loc[self_labels, "sigma"].to_numpy(dtype=float)
+    cross_terms = contribution_data.loc[cross_labels, "sigma"].to_numpy(dtype=float)
+    self_terms_err = contribution_data.loc[self_labels, "delta_sigma"].to_numpy(
+        dtype=float
+    )
+    cross_terms_err = contribution_data.loc[cross_labels, "delta_sigma"].to_numpy(
+        dtype=float
+    )
 
-    # only if contributions are not zero
-    if s_ne == 0:
-        ion = 0.0
-        ion_err = 0.0
-        t_mm_id = 0.0
-        t_mm_id_err = 0.0
-        t_pp_id = 0.0
-        t_pp_id_err = 0.0
-
-        # print information to user
-        print(
-            "\n*** Warning: Nernst-Einstein conductivity is zero, transport numbers are not calculated.\n"
+    if pair_labels:
+        pair_values = contribution_data.loc[pair_labels, "sigma"].to_numpy(dtype=float)
+        pair_errors = contribution_data.loc[pair_labels, "delta_sigma"].to_numpy(
+            dtype=float
         )
     else:
-        # ionicity is the ratio of the total Einstein-Helfand conductivity to the total Nernst-Einstein conductivity
-        ion = s_eh / s_ne
-        ion_err = np.sqrt((s_eh_err / s_ne) ** 2 + (s_eh * s_ne_err / s_ne**2) ** 2)
+        pair_values = np.array([], dtype=float)
+        pair_errors = np.array([], dtype=float)
 
-        # the ideal transport numbers are calculated from the self terms only
-        t_mm_id = s_mm_self / (s_mm_self + s_pp_self)
-        t_mm_id_err = np.sqrt(
-            (s_mm_self**2 * s_pp_self_err**2 + s_pp_self**2 * s_mm_self_err**2)
-            / (s_mm_self + s_pp_self) ** 4
+    # ideal transport numbers only depend on the self terms
+    t_ideal, t_ideal_err = _propagate_ratio(
+        np.eye(species),
+        self_terms,
+        self_terms_err,
+    )
+
+    # real transport numbers use self + cross terms plus half of each pair term
+    full_terms = self_terms + cross_terms
+    full_terms_err = np.sqrt(self_terms_err**2 + cross_terms_err**2)
+
+    pair_map = np.zeros((species, len(pair_values)))
+    if len(pair_values) > 0:
+        pair_map[pair_indices[0], np.arange(len(pair_values))] = 0.5
+        pair_map[pair_indices[1], np.arange(len(pair_values))] = 0.5
+
+    # stack one identity block for the one-body terms and one map for the
+    # pair contributions so the full transport-number problem becomes linear
+    t_real, t_real_err = _propagate_ratio(
+        np.hstack((np.eye(species), pair_map)),
+        np.concatenate((full_terms, pair_values)),
+        np.concatenate((full_terms_err, pair_errors)),
+    )
+
+    # debug
+    # print("t_id:", t_ideal)
+    # print("t_id_err:", t_ideal_err)
+    # print("t_real:", t_real)
+    # print("t_real_err:", t_real_err)
+
+    # Note to the user
+    if species == 2:
+        print(
+            "Info: If this is truly a binary system with no other (neutral or charged) species involved, the real transport numbers are dependent on the reference frame and bear no physical meaning.\n"
         )
-        t_pp_id = s_pp_self / (s_mm_self + s_pp_self)
-        t_pp_id_err = t_mm_id_err  # the uncertainties of the ideal transport numbers are identical
 
-    # there is no physical meaning in the transport number for the plus minus terms. it is equally attributed to both ions
-    t_pm = s_pm / s_eh
-    t_pm_err = np.sqrt((s_pm_err / s_eh) ** 2 + (s_pm * s_eh_err / s_eh**2) ** 2)
-    t_mm = s_mm_tot / s_eh + t_pm / 2
-    t_mm_err = np.sqrt(
-        (s_mm_tot_err / s_eh) ** 2
-        + (s_mm_tot * s_eh_err / s_eh**2) ** 2
-        + (t_pm_err / 2) ** 2
-    )
-    t_pp = s_pp_tot / s_eh + t_pm / 2
-    t_pp_err = np.sqrt(
-        (s_pp_tot_err / s_eh) ** 2
-        + (s_pp_tot * s_eh_err / s_eh**2) ** 2
-        + (t_pm_err / 2) ** 2
-    )
+    # sum check
+    if not np.isclose(np.sum(t_ideal), 1, atol=0.01):
+        print(
+            "\n*** Warning: Ideal transport numbers do not add up to 1. Please check the input data and the results.\n"
+        )
+    if not np.isclose(np.sum(t_real), 1, atol=0.01):
+        print(
+            "\n*** Warning: Real transport numbers do not add up to 1. Please check the input data and the results.\n"
+        )
 
-    # put the a posteriori quantities to a new data frame
-    a_posteriori = pd.DataFrame(
-        data=[
-            [
-                ion,
-                ion_err,
-                t_mm_id,
-                t_mm_id_err,
-                t_pp_id,
-                t_pp_id_err,
-                t_mm,
-                t_mm_err,
-                t_pp,
-                t_pp_err,
-            ]
-        ],
-        columns=[
-            "ionicity",
-            "ionicity_err",
-            "t_mm_ideal",
-            "t_mm_ideal_err",
-            "t_pp_ideal",
-            "t_pp_ideal_err",
-            "t_mm",
-            "t_mm_err",
-            "t_pp",
-            "t_pp_err",
-        ],
-    ).astype(
+    # create a dataframe to store the results
+    transport_numbers = pd.DataFrame(
         {
-            "ionicity": float,
-            "ionicity_err": float,
-            "t_mm_ideal": float,
-            "t_mm_ideal_err": float,
-            "t_pp_ideal": float,
-            "t_pp_ideal_err": float,
-            "t_mm": float,
-            "t_mm_err": float,
-            "t_pp": float,
-            "t_pp_err": float,
+            "species": [f"{i+1}" for i in range(species)],
+            "t_ideal": t_ideal,
+            "t_ideal_err": t_ideal_err,
+            "t_real": t_real,
+            "t_real_err": t_real_err,
         }
     )
 
-    # check if the transport numbers are within physical limits (0 to 1)
-    if (
-        any([t_mm, t_mm_id, t_pp, t_pp_id]) < 0
-        or any([t_mm, t_mm_id, t_pp, t_pp_id]) > 1
-    ):
-        print(
-            "\n*** Warning: Transport numbers are outside of physical limits (0 to 1). Please check the input data and the results.\n"
-        )
-    # check if + and - transport numbers add up to 1
-    if not np.isclose(t_mm + t_pp, 1, atol=0.01) or not np.isclose(
-        t_mm_id + t_pp_id, 1, atol=0.01
-    ):
-        print(
-            "\n*** Warning: + and - transport numbers do not add up to 1. Please check the input data and the results.\n"
-        )
-    # check if the uncertainties are identical
-    if not np.isclose(t_mm_err, t_pp_err, atol=0.01) or not np.isclose(
-        t_mm_id_err, t_pp_id_err, atol=0.01
-    ):
-        print(
-            "\n*** Warning: Uncertainties of + and - transport numbers are not identical. Please check the input data and the results.\n"
-        )
-
-    return a_posteriori
+    return transport_numbers

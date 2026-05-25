@@ -79,35 +79,6 @@ def action_not_less_than(min_value: float = 0.0) -> type[argparse.Action]:
     return CustomActionLessThan
 
 
-# def action_not_more_than(max_value: float = 0.0) -> type[argparse.Action]:
-#     class CustomActionMoreThan(argparse.Action):
-#         """
-#         Custom action for limiting possible input values. Raise error if value is larger than max_value.
-#         """
-
-#         def __call__(
-#             self,
-#             p: argparse.ArgumentParser,
-#             args: argparse.Namespace,
-#             values: list[float | int] | float | int,  # type: ignore
-#             option_string: str | None = None,
-#         ) -> None:
-#             if isinstance(values, (int, float)):
-#                 values = [values]
-
-#             if any(value > max_value for value in values):
-#                 p.error(
-#                     f"Option '{option_string}' takes only values smaller than {max_value}. {values} is not accepted."
-#                 )
-
-#             if len(values) == 1:
-#                 values = values[0]
-
-#             setattr(args, self.dest, values)
-
-#     return CustomActionMoreThan
-
-
 def action_in_range(
     min_value: float = 0.0, max_value: float = 1.0
 ) -> type[argparse.Action]:
@@ -153,24 +124,28 @@ def action_check_hummer() -> type[argparse.Action]:
             option_string: str | None = None,
         ) -> None:
 
-            # temperature has to be > 100
-            if values[0] < 100.0:
+            # temperature has to be >= 0K
+            if values[0] < 0.0:
                 p.error(
-                    f"Option '{option_string}' takes only values larger than 100. {values[0]} is not accepted."
+                    f"Option '{option_string}' takes only values larger than 0 K. {values[0]} is not accepted."
                 )
-            # viscosity has to be > 0
+            # if delta temperature is not given, set it to 0.
+            # caveat: this is nonphysical, will result in a zero error for the hummer correction term.
+            # the term will be set to zero if the viscosity is not given, so this is not a problem in that case.
             if len(values) == 1:
-                values.append(0.008277)
+                values.append(0)
+            # viscosity has to be > 0
             elif values[1] <= 0.0:
                 p.error(
-                    f"Option '{option_string}' takes only values larger than 0. {values[1]} is not accepted."
+                    f"Option '{option_string}' takes only values larger than 0 kg/(m*s). {values[1]} is not accepted."
                 )
-            # delta_viscosity has to be >= 0
+            # if delta viscosity is not given, set it to 0
             if len(values) == 2:
-                values.append(0.005039)
+                values.append(0)
+            # delta_viscosity has to be >= 0
             elif values[2] < 0.0:
                 p.error(
-                    f"Option '{option_string}' takes only values larger than or equal to 0. {values[2]} is not accepted."
+                    f"Option '{option_string}' takes only values >= 0 kg/(m*s). {values[2]} is not accepted."
                 )
 
             setattr(args, self.dest, values)
@@ -247,8 +222,8 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
     """
 
     p = argparse.ArgumentParser(
-        prog="msdiff",
-        description="Program to calculate the diffusion coefficient from a TRAVIS MSD output.",
+        prog=name,
+        description="Program to calculate diffusion coefficients or ionic conductivities from MSD data.",
         epilog="Written for the Kirchner group by Tom Frömbgen.",
         formatter_class=lambda prog: Formatter(prog, max_help_position=60),
         add_help=False,
@@ -262,21 +237,20 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
         help="R|Show this help message and exit.",
     )
     p.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"{name} {__version__}",
+        help="R|Show version and exit.",
+    )
+    p.add_argument(
         "-f",
         "--file",
         type=is_file,
         metavar="MSD_FILE",
         dest="file",
         required=True,
-        help="R|File containing the mean square displacement in csv format",
-    )
-    p.add_argument(
-        "-a",
-        "--avg",
-        action="store_true",
-        dest="avg",
-        help="R|The input file contains the average values and the standard deviation.",
-        default=False,
+        help="R|Input file in csv format containing diffusion or conductivity data.",
     )
     p.add_argument(
         "-c",
@@ -287,36 +261,8 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
         default=False,
     )
     p.add_argument(
-        "--species",
-        type=int,
-        metavar="N",
-        dest="species",
-        help="R|Number of species to be handled by the code.",
-        action=action_not_less_than(1),
-        default=argparse.SUPPRESS,
-    )
-    p.add_argument(
-        "--from-travis",
-        action="store_true",
-        dest="from_travis",
-        help="R|If the input file is an MSD from TRAVIS in the lmp format,\nthe box length can be read from the 'travis.log' file.",
-        default=False,
-    )
-    p.add_argument(
-        "--hummer",
-        action=action_check_hummer(),
-        dest="hummer",
-        default=[
-            350.0,
-            0.008277,
-            0.005039,
-        ],  # eta and d_eta calculated from equation in https://doi.org/10.1021/jp044626d
-        nargs="+",
-        type=float,
-        help="R|Use the Hummer correction for the diffusion coefficient.\nThe values are given in the format 'Temperature, Viscosity, delta_Viscosity' (comma separated).\nThe temperature is in K, the viscosity in kg/(m*s) and the d_Viscosity in kg/(m*s).",
-    )
-    p.add_argument(
         "-l",
+        "--length",
         type=float,
         metavar="L",
         dest="length",
@@ -326,13 +272,22 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
         default=None,
     )
     p.add_argument(
-        "--dim",
+        "-s",
+        "--species",
         type=int,
         metavar="N",
-        dest="dimensions",
-        help="R|Number of dimensions, the diffusion coefficient should be calculated for.",
-        default=3,
-        choices=[1, 2, 3],
+        dest="species",
+        help="R|Number of species to be handled by the code.",
+        action=action_not_less_than(1),
+        default=argparse.SUPPRESS,
+    )
+    p.add_argument(
+        "-u",
+        "--uncertainty",
+        type=str,
+        choices=["std", "var", "none"],
+        help="R|Which uncertainties are present in the input file.\n'std' is standard deviation or standard error.\n'none' means that no uncertainties are present in the input file, the default for a diffusion coefficient.\n'var' is variance, the default for a conductivity.",
+        default=argparse.SUPPRESS,
     )
     p.add_argument(
         "-o",
@@ -343,6 +298,7 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
         default="msdiff",
     )
     p.add_argument(
+        "-z",
         "--orthoboxy",
         dest="orthoboxy",
         type=is_file,
@@ -351,17 +307,40 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
         default=None,
     )
     p.add_argument(
+        "--from-travis",
+        action="store_true",
+        dest="from_travis",
+        help="R|If the input file is an MSD from TRAVIS in the lmp format,\nthe box length can be read from the 'travis.log' file.",
+        default=False,
+    )
+    p.add_argument(
+        "-d",
+        "--dim",
+        "--dimensions",
+        type=int,
+        metavar="N",
+        dest="dimensions",
+        help="R|Number of dimensions, the diffusion coefficient should be calculated for.",
+        default=3,
+        choices=[1, 2, 3],
+    )
+    p.add_argument(
+        "--hummer",
+        action=action_check_hummer(),
+        dest="hummer",
+        default=[0, 0, 0],
+        nargs="+",
+        type=float,
+        help="R|Use the Hummer correction for the diffusion coefficient.\nThe values are given in the format 'Temperature, Viscosity, delta_Viscosity' (comma separated).\nThe temperature is in K, the viscosity in kg/(m*s) and the d_Viscosity in kg/(m*s).",
+    )
+    p.add_argument(
+        "-t",
         "--tol",
+        "--tolerance",
         type=float,
         dest="tolerance",
         help="R|Tolerance for identifying the linear region.",
         default=0.10,
         action=action_in_range(0.001, 0.3),
-    )
-    p.add_argument(
-        "--version",
-        action="version",
-        version=f"{name} {__version__}",
-        help="R|Show version and exit.",
     )
     return p

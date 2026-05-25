@@ -153,6 +153,7 @@ dmypy.json
 # added by developer
 
 .vscode/
+tmp/
 
 # TRAVIS
 !travis.log
