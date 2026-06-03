@@ -4,6 +4,8 @@ Test the function to find the linear region of an MSD data set.
 
 from __future__ import annotations
 
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from pathlib import Path
 
 import pandas as pd
@@ -26,7 +28,7 @@ from msdiff import linear_fit
             1000.0,
             126.09698295695655,
             0.09210120779980052,
-            0.9999455984170537,
+            0.9999771190107167,
             890,
         ),
         (
@@ -65,8 +67,9 @@ def test_fail_linear_regression() -> None:
             "std": [0, 0, 0, 0, 0],
         }
     )
-    with pytest.raises(Warning):
-        linear_fit(msd_file, 0, 4)
+    with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+        slope, uncertainty, r2, ndata = linear_fit(msd_file, 0, 4)
+    assert (slope, uncertainty, r2, ndata) == (1.0, 0.3162277660049359, 1.0, 5)
 
     with pytest.raises(ValueError):
         linear_fit(msd_file, 0, 0)

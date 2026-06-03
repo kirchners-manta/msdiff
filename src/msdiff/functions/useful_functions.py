@@ -83,6 +83,7 @@ def find_linear_region(
             # calculate the slope
 
             # either from a two-point formula
+            # not used from v 0.3.0 onwards, but kept here for reference
             # slope = (lnMSD[t1] - lnMSD[t2]) / (lnTime[t1] - lnTime[t2])
 
             # or from a linear regression
@@ -108,7 +109,7 @@ def find_linear_region(
                     ]
                 )
                 # increase the interval by incr, but make sure t1 > 0
-                t1 -= int(ndata * incr)
+                t1 -= max(1, int(ndata * incr))
                 if t1 < 1:
                     linear_region = False
 
@@ -166,8 +167,10 @@ def linear_fit(
     ndata = len(fit_data)
     if ndata < 2:
         raise ValueError("Not enough data points for linear regression.")
-    elif ndata < 100:
-        raise Warning("Small number of data points.")
+    elif ndata < 50:
+        print(
+            f"Info: Only {ndata} data points in the linear region. The linear regression may be unreliable.\n"
+        )
 
     # perform a linear regression with or without weighted errors, depending on the uncertainties
 
@@ -207,14 +210,25 @@ def lmfit_linear_regression(
     # if there are no uncertainties, perform a simple linear regression
     if np.all(e == 0):
         result = lmod.fit(y, params, x=x, scale_covar=False)
+        r2 = float(result.rsquared)
     # if there are uncertainties, perform a weighted linear regression
     else:
-        result = lmod.fit(y, params, x=x, weights=1 / e, scale_covar=False)
+        fit_weights = 1 / e
+        result = lmod.fit(y, params, x=x, weights=fit_weights, scale_covar=False)
+
+        # lmfit applies weights to the residual as (y - yhat) * weights.
+        # Because we pass 1 / e here, the effective inverse-variance weights
+        # are 1 / e**2 for a weighted R^2 calculation.
+        weights = fit_weights**2
+        weighted_mean = np.average(y, weights=weights)
+        ss_res = np.sum(weights * (y - result.best_fit) ** 2)
+        ss_tot = np.sum(weights * (y - weighted_mean) ** 2)
+        r2 = 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
 
     return [
         float(result.params["slope"].value),
         float(result.params["slope"].stderr),
-        float(result.rsquared),
+        r2,
         int(len(x)),
     ]
 

@@ -85,8 +85,8 @@ def test_read_input_conductivity_variance_is_converted_to_std() -> None:
         Path(__file__).parents[2]
         / "examples"
         / "conductivity"
-        / "3comp"
-        / "conduct_F2NO4S2_#2_C4H10O2_#2_Li.csv"
+        / "3_comp"
+        / "conduct_3comp.csv"
     )
 
     data = read_input_conductivity(str(data_file), uncert="var", species=3)

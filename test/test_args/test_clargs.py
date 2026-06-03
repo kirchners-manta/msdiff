@@ -5,13 +5,13 @@ Test command line options / arguments
 from __future__ import annotations
 
 import argparse
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 
 import pytest
 
-from msdiff import argparser, diffusion_coefficient
+from msdiff import argparser, console_entry_point, diffusion_coefficient
 
 
 def test_defaults() -> None:
@@ -123,20 +123,25 @@ def test_no_travis_log() -> None:
 
     parser = argparser.parser()
 
-    with redirect_stderr(StringIO()):
+    with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
         with pytest.raises(FileNotFoundError):
             diffusion_coefficient(
                 parser.parse_args(f"-l 5000 -f {example_file} --from-travis".split())
             )
 
 
-def test_no_length() -> None:
-    """Test if the box length is given"""
+def test_no_length(tmp_path: Path) -> None:
+    """Test the default behavior when no box length is given."""
 
     example_file = Path(__file__).parent / "data" / "example.csv"
 
     parser = argparser.parser()
 
-    with redirect_stderr(StringIO()):
-        with pytest.raises(ValueError):
-            diffusion_coefficient(parser.parse_args(f"-f {example_file}".split()))
+    with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+        args = parser.parse_args(f"-f {example_file}".split())
+        assert args.length is None
+        assert 0 == console_entry_point(
+            f"-f {example_file} -o {tmp_path / 'test'}".split()
+        )
+
+    assert (tmp_path / "test_out.csv").is_file()
