@@ -339,8 +339,27 @@ def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
         "--tolerance",
         type=float,
         dest="tolerance",
+        metavar="TOL",
         help="R|Tolerance for identifying the linear region.",
         default=0.10,
         action=action_in_range(0.001, 0.3),
+    )
+    p.add_argument(
+        "--slice",
+        type=int,
+        dest="linreg_slice",
+        metavar="N",
+        default=25,
+        action=action_not_less_than(1),
+        help="R|Number of slices into which the MSD data is initially divided for search of the linear regime.",
+    )
+    p.add_argument(
+        "--incr",
+        type=float,
+        dest="linreg_incr",
+        metavar="INCR",
+        default=0.01,
+        action=action_in_range(0.001, 0.5),
+        help="R|Incrementation for the linear regime search. 0.01 (default) corresponds to 1 percent of the total amount of MSD data points.",
     )
     return p

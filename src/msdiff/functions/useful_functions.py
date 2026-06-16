@@ -40,9 +40,9 @@ def find_linear_region(
     tol : float
         Tolerance for the slope of the linear region.
     nslice : int
-        Number of slices to partition the data set, default is 25.
+        Number of slices to partition the data set.
     incr : float
-        Increment for the linear region search, default is 0.01.
+        Increment for the linear region search.
 
     Returns
     -------

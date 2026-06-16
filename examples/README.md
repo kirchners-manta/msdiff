@@ -47,6 +47,8 @@ If the viscosity is zero or omitted, the Hummer correction term is set to zero, 
 * `--from-travis` is used to indicate that there is a corresponding TRAVIS log file `travis.log` in the same directory, which can be used to read the box length instead of providing `-l/--length`.
 * `-z/--orthoboxy` is used to indicate that the MSD data provided in the input file (`-f/--file`) corresponds to movements in the x-y plane, while the second input file provided with this option corresponds to movements in the z direction, and that the [OrthoBoXY](https://doi.org/10.1021/acs.jpcb.3c04492) method should be used to calculate the diffusion coefficient.
 * `-t/--tol/--tolerance` is used to specify the tolerance to identify the linear regime in the (logarithmic) MSD, which defaults to 0.1, meaning that the MSD data points are considered to be in the linear regime if they deviate by less than 10% from the linear fit.
+* `--slice` is used to determine the number of slices into which the MSD data is initially partitioned when finding the linear region. Default is 25.
+* `--incr` is the increment by which the slice of an initial slice is increased if found to be linear. Default is 0.01, corresponding to 1 percent of the MSD data.
 
 ## Diffusion
 

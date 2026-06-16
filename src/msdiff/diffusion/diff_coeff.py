@@ -158,6 +158,8 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
         firststep, laststep = find_linear_region(
             msd_data[["time", f"msd_{i+1}_self"]],
             args.tolerance,
+            args.linreg_slice,
+            args.linreg_incr,
         )
 
         # debug
