@@ -68,13 +68,21 @@ def find_linear_region(
 
         while linear_region:
             # extract region of interest from data
+            if t1 < 1 or t2 < 1 or t1 > t2:
+                break
             region = data.iloc[t1 - 1 : t2 + 1].copy()
+            if region.empty:
+                break
 
             # shift dataframe so that both time and MSD start from 0
             region_values = region.iloc[:, :2].astype(float)
             region.iloc[:, :2] = region_values.subtract(
                 region_values.iloc[0], axis="columns"
             )
+
+            # if there are negative values in slice, skip it
+            if (region.iloc[:, 1] < 0).any():
+                break
 
             # use log-log plot to find linear region
             lnTime = np.log(region.iloc[1:, 0])
@@ -91,7 +99,7 @@ def find_linear_region(
                 lnTime, lnMSD, np.zeros_like(lnMSD)
             )
 
-            # if the slope is nan, exit the loop
+            # if the slope is nan, skip this slice
             if np.isnan(slope):  # pragma: no cover
                 break
             # if the slope is not within tolerance or the R^2 value is not close to 1, exit the loop
@@ -105,7 +113,7 @@ def find_linear_region(
                         t1,
                         t2,
                         t2 - t1,
-                        np.abs((lnMSD[t1] - lnMSD[t2]) / (lnTime[t1] - lnTime[t2]) - 1),
+                        np.abs(slope - 1.0),
                     ]
                 )
                 # increase the interval by incr, but make sure t1 > 0
