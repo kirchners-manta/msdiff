@@ -157,3 +157,6 @@ tmp/
 
 # TRAVIS
 !travis.log
+
+# Handoff documents for fresh agent sessions
+.handoff/
