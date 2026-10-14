@@ -56,7 +56,10 @@ def test_perform_linear_regression(
     r2: float,
     ndata: int,
 ) -> None:
-    assert linear_fit(msd_data, firststep, laststep) == [slope, uncertainty, r2, ndata]
+    result = linear_fit(msd_data, firststep, laststep)
+    # exact float equality is platform (BLAS) dependent, compare to a tight tolerance
+    assert result[:3] == pytest.approx([slope, uncertainty, r2], rel=1e-8)
+    assert result[3] == ndata
 
 
 def test_fail_linear_regression() -> None:
@@ -69,7 +72,8 @@ def test_fail_linear_regression() -> None:
     )
     with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
         slope, uncertainty, r2, ndata = linear_fit(msd_file, 0, 4)
-    assert (slope, uncertainty, r2, ndata) == (1.0, 0.3162277660049359, 1.0, 5)
+    assert (slope, uncertainty, r2) == pytest.approx((1.0, 0.3162277660049359, 1.0))
+    assert ndata == 5
 
     with pytest.raises(ValueError):
         linear_fit(msd_file, 0, 0)

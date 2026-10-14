@@ -80,3 +80,34 @@ def test_find_linear_region(
     laststep: float,
 ) -> None:
     assert firststep, laststep == find_linear_region(msd_file, tol)
+
+
+def test_find_linear_region_flat_data_returns_no_region() -> None:
+    # a flat MSD would give log(0) after shifting the first point to zero
+    data = pd.DataFrame({"time": np.arange(1.0, 201.0), "msd": np.ones(200)})
+
+    assert find_linear_region(data, 0.1) == [-1, -1]
+
+
+def test_find_linear_region_short_data_warns_instead_of_crashing() -> None:
+    # 30 points / 25 slices: the smallest slices have one or two points, which
+    # used to crash inside lmfit
+    time = np.arange(1.0, 31.0)
+    data = pd.DataFrame({"time": time, "msd": 2.0 * time})
+
+    with pytest.warns(UserWarning, match="--slice"):
+        result = find_linear_region(data, 0.1)
+
+    assert len(result) == 2
+
+
+def test_find_linear_region_short_data_with_adapted_slices_is_quiet(
+    recwarn: pytest.WarningsRecorder,
+) -> None:
+    time = np.arange(1.0, 31.0)
+    data = pd.DataFrame({"time": time, "msd": 2.0 * time})
+
+    first, last = find_linear_region(data, 0.1, nslice=5)
+
+    assert 0 < first < last
+    assert not [w for w in recwarn if issubclass(w.category, UserWarning)]

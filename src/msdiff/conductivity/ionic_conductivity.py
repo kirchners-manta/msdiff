@@ -12,7 +12,7 @@ from ..functions import calc_transport_numbers, find_linear_region, linear_fit
 from .output import print_program_header, print_results_to_file, print_results_to_stdout
 
 
-def conductivity(args: argparse.Namespace) -> int:
+def calculate_conductivity(args: argparse.Namespace) -> int:
     """Function to calculate the ionic conductivity.
 
     Parameters
@@ -24,6 +24,11 @@ def conductivity(args: argparse.Namespace) -> int:
     -------
     int
         Exit code of the program
+
+    Raises
+    ------
+    ValueError
+        If no linear region is found in the data.
     """
 
     # print program header
@@ -33,10 +38,14 @@ def conductivity(args: argparse.Namespace) -> int:
     msd_data = read_input_conductivity(args.file, args.uncertainty, args.species)
 
     # find linear region, based on EH conductivity
-    (firststep, laststep) = find_linear_region(
+    firststep, laststep = find_linear_region(
         msd_data[["time", "total_eh"]],
         args.tolerance,
     )
+    if firststep == -1 or laststep == -1:
+        raise ValueError(
+            "No linear region found in the data. Please check the input file and the tolerance."
+        )
 
     # initialize dataframe for results
     results = pd.DataFrame(
@@ -65,16 +74,11 @@ def conductivity(args: argparse.Namespace) -> int:
     for c, data_set in enumerate(contributions):
 
         # perform linear fit
-        if firststep == -1 or laststep == -1:
-            raise ValueError(
-                "No linear region found in the data. Please check the input file and the tolerance."
-            )
-        else:
-            cond, delta_cond, r2, npoints_fit = linear_fit(
-                msd_data[["time", data_set, f"{data_set}_std"]],
-                firststep,
-                laststep,
-            )
+        cond, delta_cond, r2, npoints_fit = linear_fit(
+            msd_data[["time", data_set, f"{data_set}_std"]],
+            firststep,
+            laststep,
+        )
 
         # add results to dataframe
         results.loc[c] = {
@@ -86,9 +90,6 @@ def conductivity(args: argparse.Namespace) -> int:
             "t_end": float(msd_data["time"].iloc[laststep]),
             "n_data": npoints_fit,
         }
-
-    # debug
-    # print(results)
 
     # calculate transport numbers
     transport_numbers = calc_transport_numbers(results, args.species)
@@ -115,6 +116,13 @@ def read_input_conductivity(file: str, uncert: str, species: int) -> pd.DataFram
     -------
     pd.DataFrame
         Dataframe containing the input data
+
+    Raises
+    ------
+    FileNotFoundError
+        If the input file does not exist.
+    ValueError
+        If the file contains non-numeric data or fewer columns than expected.
     """
 
     if uncert == "none":
@@ -136,6 +144,9 @@ def read_input_conductivity(file: str, uncert: str, species: int) -> pd.DataFram
             file,
             sep=";",
             skiprows=1,
+            # the line after the comment is data, not a header (the column
+            # names are assigned below)
+            header=None,
         ).astype(float)
 
         # if there are more columns in the file than expected, drop them
@@ -165,16 +176,16 @@ def read_input_conductivity(file: str, uncert: str, species: int) -> pd.DataFram
                 for k in ["", "_std"]
             ]
             + ["total_eh"]
-            + [f"total_eh_std"]
+            + ["total_eh_std"]
         )
-
-        # debug
-        # print(colnames)
 
         data = pd.read_csv(
             file,
             sep=";",
             skiprows=1,
+            # the line after the comment is data, not a header (the column
+            # names are assigned below)
+            header=None,
         ).astype(float)
 
         # if there are more columns in the file than expected, drop them
@@ -197,8 +208,5 @@ def read_input_conductivity(file: str, uncert: str, species: int) -> pd.DataFram
                         lambda x: x**0.5
                     )
             data["total_eh_std"] = data["total_eh_std"].apply(lambda x: x**0.5)
-
-    # debug
-    # print(data)
 
     return data

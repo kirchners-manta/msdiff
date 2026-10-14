@@ -1,5 +1,3 @@
-# Part of the AIMD setup tool
-
 """
 Parser for command line options.
 """
@@ -17,6 +15,23 @@ from .. import __version__
 
 # file and directory checks
 def is_file(path: str | Path) -> str | Path:
+    """Check that a path points to an existing file (argparse ``type``).
+
+    Parameters
+    ----------
+    path : str | Path
+        Path given on the command line.
+
+    Returns
+    -------
+    str | Path
+        The unchanged path.
+
+    Raises
+    ------
+    argparse.ArgumentTypeError
+        If the path is a directory or does not exist.
+    """
     p = Path(path)
 
     if p.is_dir():
@@ -33,6 +48,23 @@ def is_file(path: str | Path) -> str | Path:
 
 
 def is_dir(path: str | Path) -> str | Path:
+    """Check that a path points to an existing directory (argparse ``type``).
+
+    Parameters
+    ----------
+    path : str | Path
+        Path given on the command line.
+
+    Returns
+    -------
+    str | Path
+        The unchanged path.
+
+    Raises
+    ------
+    argparse.ArgumentTypeError
+        If the path is a file or does not exist.
+    """
     p = Path(path)
 
     if p.is_file():
@@ -50,6 +82,19 @@ def is_dir(path: str | Path) -> str | Path:
 
 # custom actions
 def action_not_less_than(min_value: float = 0.0) -> type[argparse.Action]:
+    """Create an argparse action that rejects values below a lower bound.
+
+    Parameters
+    ----------
+    min_value : float
+        Smallest accepted value (inclusive).
+
+    Returns
+    -------
+    type[argparse.Action]
+        Action class; calls ``parser.error`` for values smaller than ``min_value``.
+    """
+
     class CustomActionLessThan(argparse.Action):
         """
         Custom action for limiting possible input values. Raise error if value is smaller than min_value.
@@ -62,6 +107,19 @@ def action_not_less_than(min_value: float = 0.0) -> type[argparse.Action]:
             values: list[float | int] | float | int,  # type: ignore
             option_string: str | None = None,
         ) -> None:
+            """Validate the values and store them on the namespace.
+
+            Parameters
+            ----------
+            p : argparse.ArgumentParser
+                Parser, used to report invalid values.
+            args : argparse.Namespace
+                Namespace the validated values are stored in.
+            values : list[float | int] | float | int
+                Values given on the command line.
+            option_string : str | None
+                Option flag that triggered this action.
+            """
 
             if isinstance(values, (int, float)):
                 values = [values]
@@ -82,6 +140,21 @@ def action_not_less_than(min_value: float = 0.0) -> type[argparse.Action]:
 def action_in_range(
     min_value: float = 0.0, max_value: float = 1.0
 ) -> type[argparse.Action]:
+    """Create an argparse action that rejects values outside a closed interval.
+
+    Parameters
+    ----------
+    min_value : float
+        Lower bound of the accepted interval (inclusive).
+    max_value : float
+        Upper bound of the accepted interval (inclusive).
+
+    Returns
+    -------
+    type[argparse.Action]
+        Action class; calls ``parser.error`` for values outside the interval.
+    """
+
     class CustomActionInRange(argparse.Action):
         """
         Custom action for limiting possible input values in a range. Raise error if value is not in range [min_value, max_value].
@@ -94,6 +167,19 @@ def action_in_range(
             values: list[float | int] | float | int,  # type: ignore
             option_string: str | None = None,
         ) -> None:
+            """Validate the values and store them on the namespace.
+
+            Parameters
+            ----------
+            p : argparse.ArgumentParser
+                Parser, used to report invalid values.
+            args : argparse.Namespace
+                Namespace the validated values are stored in.
+            values : list[float | int] | float | int
+                Values given on the command line.
+            option_string : str | None
+                Option flag that triggered this action.
+            """
             if isinstance(values, (int, float)):
                 values = [values]
 
@@ -111,6 +197,15 @@ def action_in_range(
 
 
 def action_check_hummer() -> type[argparse.Action]:
+    """Create an argparse action that validates and pads the ``--hummer`` values.
+
+    Returns
+    -------
+    type[argparse.Action]
+        Action class; expects ``temperature [viscosity [delta_viscosity]]`` and
+        pads missing trailing values with zero.
+    """
+
     class CustomActionHummer(argparse.Action):
         """
         Custom action for Hummer correction. Check if the correct number of arguments is given.
@@ -123,6 +218,19 @@ def action_check_hummer() -> type[argparse.Action]:
             values: list[float],  # type: ignore
             option_string: str | None = None,
         ) -> None:
+            """Validate the values and store them on the namespace.
+
+            Parameters
+            ----------
+            p : argparse.ArgumentParser
+                Parser, used to report invalid values.
+            args : argparse.Namespace
+                Namespace the validated values are stored in.
+            values : list[float | int] | float | int
+                Values given on the command line.
+            option_string : str | None
+                Option flag that triggered this action.
+            """
 
             # temperature has to be >= 0K
             if values[0] < 0.0:
@@ -206,14 +314,19 @@ class Formatter(argparse.HelpFormatter):
         if text.startswith("R|"):
             return text[2:].splitlines()
 
-        # pylint: disable=protected-access
         return argparse.HelpFormatter._split_lines(self, text, width)
 
 
 # custom parser
 def parser(name: str = "msdiff", **kwargs: Any) -> argparse.ArgumentParser:
-    """
-    Parses the command line arguments.
+    """Build the command line argument parser.
+
+    Parameters
+    ----------
+    name : str
+        Program name shown in the help and version messages.
+    **kwargs : Any
+        Additional keyword arguments passed to ``argparse.ArgumentParser``.
 
     Returns
     -------

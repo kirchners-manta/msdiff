@@ -52,7 +52,7 @@ def test_read_input_conductivity_std_three_species_trims_extra_columns(
 
     data = read_input_conductivity(str(data_file), uncert="std", species=3)
 
-    assert data.shape == (2, 21)
+    assert data.shape == (3, 21)
     assert list(data.columns) == [
         "time",
         "msd_1_self",
@@ -76,8 +76,9 @@ def test_read_input_conductivity_std_three_species_trims_extra_columns(
         "total_eh",
         "total_eh_std",
     ]
-    assert data.iloc[0, 0] == 2.0
-    assert data.iloc[1, -1] == 1.0
+    # all data rows are kept, the first one directly follows the comment line
+    assert data.iloc[0, 0] == 1.0
+    assert data.iloc[2, -1] == 1.0
 
 
 def test_read_input_conductivity_variance_is_converted_to_std() -> None:
@@ -92,9 +93,11 @@ def test_read_input_conductivity_variance_is_converted_to_std() -> None:
     data = read_input_conductivity(str(data_file), uncert="var", species=3)
 
     assert data.columns[0] == "time"
-    assert data.loc[0, "msd_1_self_std"] == 0.001441**0.5
-    assert data.loc[0, "msd_2_self_std"] == 0.000005**0.5
-    assert data.loc[0, "msd_3_self_std"] == 0.011427**0.5
-    assert data.loc[0, "msd_1_cross_std"] == 0.055585**0.5
-    assert data.loc[0, "msd_1_2_std"] == 0.007359**0.5
-    assert data.loc[0, "total_eh_std"] == 0.425035**0.5
+    # row 0 is the t = 0 line (variance 0), the values below are from row 1
+    assert data.loc[0, "total_eh_std"] == 0.0
+    assert data.loc[1, "msd_1_self_std"] == 0.001441**0.5
+    assert data.loc[1, "msd_2_self_std"] == 0.000005**0.5
+    assert data.loc[1, "msd_3_self_std"] == 0.011427**0.5
+    assert data.loc[1, "msd_1_cross_std"] == 0.055585**0.5
+    assert data.loc[1, "msd_1_2_std"] == 0.007359**0.5
+    assert data.loc[1, "total_eh_std"] == 0.425035**0.5

@@ -4,14 +4,16 @@ channels:
   - defaults
   - conda-forge
 dependencies:
+  - python>=3.12
   - black
   - coverage
+  - isort
   - lmfit
-  - matplotlib
+  - mypy
   - numpy
   - pandas
+  - pandas-stubs
   - pre-commit
-  - pylint
   - pytest
   - tox
   - pip:

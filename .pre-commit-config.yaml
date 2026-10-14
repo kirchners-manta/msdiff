@@ -17,13 +17,13 @@ repos:
     rev: v2.7.0
     hooks:
       - id: setup-cfg-fmt
-        args: [--include-version-classifiers, --min-py-version, "3.8", --max-py-version, "3.11"]
+        args: [--include-version-classifiers, --min-py-version, "3.12", --max-py-version, "3.14"]
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.19.1
     hooks:
       - id: pyupgrade
-        args: [--py38-plus]
+        args: [--py312-plus]
 
   - repo: https://github.com/pycqa/isort
     rev: 6.0.0
