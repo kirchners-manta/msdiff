@@ -7,7 +7,15 @@
   pythonpath = ["src"]
 
 
+[tool.isort]
+  profile = "black"
+  # fixed first-party package: detection otherwise depends on the checkout/environment
+  known_first_party = ["msdiff"]
+
+
 [tool.mypy]
+  # check against the oldest supported version (setup.cfg: python_requires)
+  python_version = "3.12"
   check_untyped_defs = true
   disallow_any_generics = true
   disallow_incomplete_defs = true
@@ -22,4 +30,10 @@
   source = ["./src"]
 
 [tool.coverage.report]
-  fail_under = 50
+  fail_under = 90
+
+
+[[tool.mypy.overrides]]
+  # lmfit ships neither stubs nor a py.typed marker
+  module = ["lmfit", "lmfit.*"]
+  ignore_missing_imports = true

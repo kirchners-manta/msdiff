@@ -5,7 +5,6 @@ Main script for msdiff diffusion coefficient calculation.
 from __future__ import annotations
 
 import argparse
-import os
 from pathlib import Path
 
 import pandas as pd
@@ -17,6 +16,98 @@ from ..functions import (
     linear_fit,
 )
 from .output import print_program_header, print_results_to_file, print_results_to_stdout
+
+
+def read_box_length_from_travis(travis_path: Path) -> list[float]:
+    """Read the box lengths from a TRAVIS log file.
+
+    Parameters
+    ----------
+    travis_path : Path
+        Path to the ``travis.log`` file.
+
+    Returns
+    -------
+    list[float]
+        Box lengths ``[lx, ly, lz]`` in pm.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file does not exist.
+    ValueError
+        If the log file contains no cell geometry.
+    """
+    if not travis_path.is_file():
+        raise FileNotFoundError("travis.log not found.")
+
+    length: list[float] | None = None
+    with open(travis_path, encoding="utf8") as f:
+        for line in f:
+            if "Found cell geometry data in trajectory file" in line:
+                # read box length from the over next line
+                next(f)
+                line = next(f)
+                length = [
+                    float(line.split()[2]),
+                    float(line.split()[6]),
+                    float(line.split()[10]),
+                ]
+    if length is None:
+        raise ValueError("No cell geometry found in travis.log.")
+    return length
+
+
+def resolve_box_length(
+    length: float | list[float] | None,
+    from_travis: bool,
+    input_file: str | Path,
+) -> list[float]:
+    """Determine the three box lengths from the command line input.
+
+    Parameters
+    ----------
+    length : float | list[float] | None
+        Value of ``--length``: a single value (cubic box), two values
+        (``lx`` and ``lz``, with ``ly = lx``), three values, or ``None``.
+    from_travis : bool
+        Whether the box lengths are read from the ``travis.log`` next to the
+        input file (``--from-travis``); ``length`` is ignored in that case.
+    input_file : str | Path
+        Path to the MSD input file.
+
+    Returns
+    -------
+    list[float]
+        Box lengths ``[lx, ly, lz]`` in pm; all zero if no length is given.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``from_travis`` is set but no ``travis.log`` exists.
+    ValueError
+        If more than three lengths are given or ``travis.log`` contains no
+        cell geometry.
+    """
+    if from_travis:
+        travis_length = read_box_length_from_travis(
+            Path(input_file).parent / "travis.log"
+        )
+        print(f"Info: Box lengths read from travis.log: {travis_length} pm.\n")
+        return travis_length
+
+    if length is None:
+        print(
+            "Info: No box length given, set to zero. Hummer correction will be zero.\n"
+        )
+        return [0.0, 0.0, 0.0]
+    if isinstance(length, float):
+        return [length, length, length]
+    if len(length) == 2:
+        return [float(length[0]), float(length[0]), float(length[1])]
+    if len(length) == 3:
+        return [float(length[0]), float(length[1]), float(length[2])]
+    raise ValueError("Too many box lengths given.")
 
 
 def diffusion_coefficient(args: argparse.Namespace) -> int:
@@ -34,73 +125,32 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
 
     Raises
     ------
+    FileNotFoundError
+        If ``--from-travis`` is set but no ``travis.log`` exists next to the
+        input file.
     ValueError
-        If no linear region is found in the data.
+        If the box lengths cannot be determined or are inconsistent (more than
+        three values, cubic box in OrthoBoXY mode, no cell geometry in
+        ``travis.log``), or if no linear region is found in the data.
     """
 
     # print program header
     print_program_header()
 
-    # if 'from travis' option is true, check for the box length in travis output file
-    if args.from_travis:
-        travis_path = Path(args.file).parent / "travis.log"
-        if os.path.isfile(travis_path):
-            with open(travis_path, encoding="utf8") as f:
-                for line in f:
-                    if "Found cell geometry data in trajectory file" in line:
-                        # read box length from the over next line
-                        next(f)
-                        line = next(f)
-                        args.length = [
-                            float(line.split()[2]),
-                            float(line.split()[6]),
-                            float(line.split()[10]),
-                        ]
-                        print(
-                            f"Info: Box lengths read from travis.log: {args.length} pm.\n"
-                        )
-        else:
-            raise FileNotFoundError("travis.log not found.")
-    else:
-        if args.length is None:
-            args.length = [0.0, 0.0, 0.0]
-            print(
-                "Info: No box length given, set to zero. Hummer correction will be zero.\n"
-            )
-        elif type(args.length) == float:
-            args.length = [
-                float(args.length),
-                float(args.length),
-                float(args.length),
-            ]
-        elif len(args.length) == 2:
-            args.length = [
-                float(args.length[0]),
-                float(args.length[0]),
-                float(args.length[1]),
-            ]
-        elif len(args.length) == 3:
-            args.length = [
-                float(args.length[0]),
-                float(args.length[1]),
-                float(args.length[2]),
-            ]
-        else:
-            raise ValueError("Too many box lengths given.")
-    # if all components of the box length are equal, set cubic to true
-    if args.length[0] == args.length[1] == args.length[2]:
-        args.cubic = True
-    else:
-        args.cubic = False
+    # ``args`` is treated as read-only: everything derived from it lives in locals
+    length = resolve_box_length(args.length, args.from_travis, args.file)
+    # if all components of the box length are equal, the box is cubic
+    cubic = length[0] == length[1] == length[2]
+    dimensions: int = args.dimensions
     # for orthoboxy, don't need to give the box length
     if args.orthoboxy is not None:
-        if args.cubic:
+        if cubic:
             raise ValueError(
                 "Cubic box does not make sense for OrthoBoXY mode. Please provide different box lengths for x and z direction.\n"
             )
-        args.dimensions = 2
+        dimensions = 2
         print(
-            f"Info: OrthoBoXY mode assumes MSD in the input file to be in x and y directions and the additional file contains the MSD in the z direction.\n"
+            "Info: OrthoBoXY mode assumes MSD in the input file to be in x and y directions and the additional file contains the MSD in the z direction.\n"
         )
 
     # read data from file
@@ -112,15 +162,12 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
             args.orthoboxy, args.uncertainty, args.species
         )
 
-    # debug
-    # print(msd_data)
-
     # hummer correction
-    if args.cubic:
+    if cubic:
         k_hum, delta_k_hum = calc_Hummer_correction(
             args.hummer[0],
             args.hummer[1],
-            args.length[0],
+            length[0],
             args.hummer[2],
         )
     else:
@@ -149,9 +196,6 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
         ]
     results = pd.DataFrame(columns=results_columns)
 
-    # debug
-    # print(results)
-
     # determine linear region
     for i in range(args.species):
 
@@ -161,9 +205,6 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
             args.linreg_slice,
             args.linreg_incr,
         )
-
-        # debug
-        # print(f"firststep: {firststep}, laststep: {laststep}")
 
         # perform linear regression in the linear region
         if firststep == -1 or laststep == -1:
@@ -183,8 +224,8 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
             )
 
         # divide D and delta D by 2*dimensions
-        diff = slope / (2 * args.dimensions)
-        delta_diff = delta_slope / (2 * args.dimensions)
+        diff = slope / (2 * dimensions)
+        delta_diff = delta_slope / (2 * dimensions)
 
         # compute orthoboxy viscosity
         if args.orthoboxy is not None:
@@ -198,16 +239,10 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
             diff_z = slope_z / 2  # dimension is 1, only z direction
             delta_diff_z = delta_slope_z / 2
 
-            # debug
-            # print(diff, delta_diff, diff_z, delta_diff_z, args.hummer[0], args.length[2])
-
             # viscosity
             eta, delta_eta = calc_orthoboxy_viscosity(
-                diff, delta_diff, diff_z, delta_diff_z, args.hummer[0], args.length[2]
+                diff, delta_diff, diff_z, delta_diff_z, args.hummer[0], length[2]
             )
-
-            # debug
-            # print(f"{eta:.10f} ± {delta_eta:.10f} mPa·s")
 
         # add results to dataframe
         results.loc[i] = {
@@ -219,9 +254,9 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
             "t_fit_start": float(msd_data["time"].iloc[firststep]),
             "t_fit_end": float(msd_data["time"].iloc[laststep]),
             "n_data": npoints_fit,
-            "lx": args.length[0],
-            "ly": args.length[1],
-            "lz": args.length[2],
+            "lx": length[0],
+            "ly": length[1],
+            "lz": length[2],
             "diffusion_coefficient_z": diff_z if args.orthoboxy is not None else None,
             "delta_diffusion_coefficient_z": (
                 delta_diff_z if args.orthoboxy is not None else None
@@ -229,9 +264,6 @@ def diffusion_coefficient(args: argparse.Namespace) -> int:
             "eta": eta if args.orthoboxy is not None else None,
             "delta_eta": delta_eta if args.orthoboxy is not None else None,
         }
-
-        # debug
-        # print(results)
 
     # print results
     print_results_to_stdout(results)
@@ -256,6 +288,13 @@ def read_input_diffusion(file: str, uncert: str, species: int) -> pd.DataFrame:
     -------
     pd.DataFrame
         The input data as a pandas DataFrame.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the input file does not exist.
+    ValueError
+        If the file contains non-numeric data.
     """
 
     if uncert == "none":
@@ -268,6 +307,9 @@ def read_input_diffusion(file: str, uncert: str, species: int) -> pd.DataFrame:
             file,
             sep=";",
             skiprows=1,
+            # the line after the comment is data, not a header (the column
+            # names are assigned below)
+            header=None,
         ).astype(float)
 
         # get number of columns in the file
@@ -291,11 +333,10 @@ def read_input_diffusion(file: str, uncert: str, species: int) -> pd.DataFrame:
             file,
             sep=";",
             skiprows=1,
+            # the line after the comment is data, not a header (the column
+            # names are assigned below)
+            header=None,
         ).astype(float)
-
-        # debug
-        # print(data)
-        # print(colnames)
 
         # get number of columns in the file
         # drop columns that are not needed and assign column names

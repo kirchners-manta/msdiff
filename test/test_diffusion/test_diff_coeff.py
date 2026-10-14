@@ -4,6 +4,7 @@ Tests for diffusion coefficient orchestration.
 
 from __future__ import annotations
 
+import copy
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -25,6 +26,7 @@ def test_diffusion_coefficient_normalizes_cubic_length(
     args = parser.parse_args(f"-f {example_file} -l 1234".split())
     args.species = 1
     args.uncertainty = "none"
+    before = copy.deepcopy(vars(args))
     observed: dict[str, Any] = {}
 
     msd_data = pd.DataFrame(
@@ -63,9 +65,9 @@ def test_diffusion_coefficient_normalizes_cubic_length(
     with redirect_stdout(StringIO()):
         assert diffusion_coefficient(args) == 0
 
-    assert args.length == [1234.0, 1234.0, 1234.0]
-    assert args.cubic == True
-    assert observed["results"]["lx"].iloc[0] == 1234.0
+    # the arguments are read-only, derived values only end up in the results
+    assert vars(args) == before
+    assert observed["results"][["lx", "ly", "lz"]].iloc[0].tolist() == [1234.0] * 3
     assert observed["results"]["diffusion_coefficient"].iloc[0] == 1.0
 
 
@@ -90,6 +92,8 @@ def test_diffusion_coefficient_reads_box_lengths_from_travis_log(
     args = parser.parse_args(f"-f {data_file} --from-travis".split())
     args.species = 1
     args.uncertainty = "none"
+    before = copy.deepcopy(vars(args))
+    observed: dict[str, Any] = {}
 
     msd_data = pd.DataFrame(
         {
@@ -117,7 +121,7 @@ def test_diffusion_coefficient_reads_box_lengths_from_travis_log(
     )
     monkeypatch.setattr(
         "msdiff.diffusion.diff_coeff.print_results_to_stdout",
-        lambda results: None,
+        lambda results: observed.setdefault("results", results.copy()),
     )
     monkeypatch.setattr(
         "msdiff.diffusion.diff_coeff.print_results_to_file",
@@ -127,8 +131,12 @@ def test_diffusion_coefficient_reads_box_lengths_from_travis_log(
     with redirect_stdout(StringIO()):
         diffusion_coefficient(args)
 
-    assert args.length == [111.0, 222.0, 333.0]
-    assert args.cubic == False
+    assert vars(args) == before
+    assert observed["results"][["lx", "ly", "lz"]].iloc[0].tolist() == [
+        111.0,
+        222.0,
+        333.0,
+    ]
 
 
 def test_diffusion_coefficient_rejects_cubic_orthoboxy(

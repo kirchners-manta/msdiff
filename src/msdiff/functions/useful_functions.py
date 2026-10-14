@@ -4,11 +4,17 @@ Useful functions for the diffusion coefficient calculation.
 
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 import lmfit
 import numpy as np
 import pandas as pd
+
+# minimum number of points for the log-log regression in the linear region search;
+# with fewer points the fit is either impossible (lmfit needs more points than
+# parameters) or meaningless (R^2 = 1 for two points)
+MIN_FIT_POINTS = 3
 
 # constants
 KBOLTZ = 1.38064852e-23  # Boltzmann constant in J/K
@@ -25,7 +31,8 @@ def find_linear_region(
     incr: float = 0.01,
 ) -> list[int]:
     """Find the linear region in the MSD or collective MSD data.
-    The MSD data is partitioned into nslice slices, and in each slice, the slope is calculated. If the slope is about 1 within the tolerance, the slice is is gradually increased by increased until the slope is not about 1 anymore.
+
+    The MSD data is partitioned into nslice slices, and in each slice, the slope is calculated. If the slope is about 1 within the tolerance, the slice is gradually increased by ``incr`` until the slope is not about 1 anymore.
     The search is started at the end of the data set and goes backwards (i.e., from larger to smaller correlation times).
     After one slice is finished, the next slice is started at half the size of the previous slice. That means, effectively, there are 2 * nslice - 1 slices to check.
     The slice with the largest number of data points is selected as the linear region.
@@ -42,19 +49,32 @@ def find_linear_region(
     nslice : int
         Number of slices to partition the data set.
     incr : float
-        Increment for the linear region search.
+        Increment for the linear region search, as a fraction of the number of data points.
 
     Returns
     -------
     list[int]
         Indices of the first and last time step of the linear region.
         Is (-1, -1) if no linear region is found.
-    """
 
+    Warns
+    -----
+    UserWarning
+        If the data set is too short for the requested number of slices.
+    """
     # initialize empty list to store the intervals
     int_list = []
     # number of data points from first column (the time)
     ndata = len(data.iloc[:, 0])
+
+    # the smallest slices contain about ndata / nslice points
+    if ndata / nslice < MIN_FIT_POINTS + 1:
+        warnings.warn(
+            f"The data set has only {ndata} points, so the smallest of the {nslice} slices "
+            f"contains fewer than {MIN_FIT_POINTS + 1} points and is skipped. "
+            "Consider a smaller number of slices (--slice).",
+            stacklevel=2,
+        )
 
     # determine the number of intervals to check
     for n in range(2 * nslice - 1):
@@ -80,21 +100,21 @@ def find_linear_region(
                 region_values.iloc[0], axis="columns"
             )
 
-            # if there are negative values in slice, skip it
-            if (region.iloc[:, 1] < 0).any():
+            # the logarithm needs strictly positive time and MSD values after the
+            # first (shifted to zero) point, e.g., a flat MSD cannot be handled
+            if (region.iloc[1:, :2] <= 0).any().any():
+                break
+
+            # too few points for a meaningful regression, skip it
+            if len(region) - 1 < MIN_FIT_POINTS:
                 break
 
             # use log-log plot to find linear region
             lnTime = np.log(region.iloc[1:, 0])
             lnMSD = np.log(region.iloc[1:, 1])
 
-            # calculate the slope
-
-            # either from a two-point formula
-            # not used from v 0.3.0 onwards, but kept here for reference
-            # slope = (lnMSD[t1] - lnMSD[t2]) / (lnTime[t1] - lnTime[t2])
-
-            # or from a linear regression
+            # calculate the slope from a linear regression
+            # (a two-point formula was used before v0.3.0)
             slope, _, r2, _ = lmfit_linear_regression(
                 lnTime, lnMSD, np.zeros_like(lnMSD)
             )
@@ -164,8 +184,11 @@ def linear_fit(
     ------
     ValueError
         Not enough data points for linear regression.
-    Warning
-        Number of data points is small.
+
+    Notes
+    -----
+    An informational message is printed (no exception is raised) if fewer than
+    50 data points are available.
     """
     # select data for fitting according to linear region
     fit_data = data[
@@ -448,12 +471,6 @@ def calc_transport_numbers(
         np.concatenate((full_terms, pair_values)),
         np.concatenate((full_terms_err, pair_errors)),
     )
-
-    # debug
-    # print("t_id:", t_ideal)
-    # print("t_id_err:", t_ideal_err)
-    # print("t_real:", t_real)
-    # print("t_real_err:", t_real_err)
 
     # Note to the user
     if species == 2:

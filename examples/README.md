@@ -67,6 +67,7 @@ msdiff -f msd_ntf2.csv -l 6134.48 --hummer 350.0 0.008277 0.005039
 The expected output is:
 
 ```
+
   MSDiff Diffusion
   ================
 
@@ -92,6 +93,7 @@ msdiff -f msd_c2c1im_std.csv -u std
 The expected output is:
 
 ```
+
   MSDiff Diffusion
   ================
 
@@ -120,6 +122,7 @@ msdiff -f msd_H2O_#2_XY.csv -z msd_H2O_#2_Z.csv --from-travis --hummer 330
 The expected output is:
 
 ```
+
   MSDiff Diffusion
   ================
 
@@ -127,12 +130,11 @@ Info: Box lengths read from travis.log: [1772.41, 1772.41, 4950.97] pm.
 
 Info: OrthoBoXY mode assumes MSD in the input file to be in x and y directions and the additional file contains the MSD in the z direction.
 
-0.2904487968443776
 Species 1
-Diffusion coefficient:           D_0 = (    5417.657463 ±        0.000107) * 10^-12 m^2/s
-Diffusion coefficient (z):       D_z = (    4044.191494 ±        0.000214) * 10^-12 m^2/s
+Diffusion coefficient:           D_0 = (    5415.383116 ±        0.000105) * 10^-12 m^2/s
+Diffusion coefficient (z):       D_z = (    4046.230756 ±        0.000211) * 10^-12 m^2/s
 Hummer correction term:          K   = (       0.000000 ±        0.000000) * 10^-12 m^2/s
-Viscosity:                       η   = (       0.290449 ±        0.000000) * 10^-3  Pa s
+Viscosity:                       η   = (       0.291364 ±        0.000000) * 10^-3  Pa s
 
 Results written to msdiff_out.csv.
 ```
@@ -151,21 +153,22 @@ msdiff -f conductivity_test_data.csv -c -u none
 The expected output is:
 
 ```
+
   MSDiff Conductivity
   ===================
 
-Note: If this is truly a binary system with no other (neutral or charged) species involved, the real transport numbers are dependent on the reference frame and bear no physical meaning.
+Info: If this is truly a binary system with no other (neutral or charged) species involved, the real transport numbers are dependent on the reference frame and bear no physical meaning.
 
 Conductivity
 Contribution          Sigma / S*m^-1    R^2 fit
-msd_1_self       0.239279 ± 0.000008   0.999983
-msd_2_self       0.419587 ± 0.000008   0.999923
-msd_1_cross     -0.171835 ± 0.000008   0.999761
-msd_2_cross      0.008690 ± 0.000008   0.245949
-msd_1_2          0.339909 ± 0.000008   0.998192
-total_eh         0.835629 ± 0.000008   0.998192
+msd_1_self       0.239280 ± 0.000008   0.999983
+msd_2_self       0.419589 ± 0.000008   0.999923
+msd_1_cross     -0.171836 ± 0.000008   0.999761
+msd_2_cross      0.008688 ± 0.000008   0.245973
+msd_1_2          0.339909 ± 0.000008   0.998193
+total_eh         0.835630 ± 0.000008   0.998193
 
-Linear regime identified between 4675.00 ps and 10224.00 ps, with 5550 data points used for the fit.
+Linear regime identified between 4674.00 ps and 10224.00 ps, with 5551 data points used for the fit.
 
 Transport Numbers
 Species          t_ideal              t_real
@@ -189,21 +192,22 @@ msdiff -f conduct_3comp.csv -c -u var -s 3
 The expected output is:
 
 ```
+
   MSDiff Conductivity
   ===================
 
 Conductivity
 Contribution          Sigma / S*m^-1    R^2 fit
 msd_1_self       0.555349 ± 0.000304   0.999919
-msd_2_self       0.075888 ± 0.000009   0.999994
-msd_3_self       1.721330 ± 0.000630   0.999876
-msd_1_cross     -0.010091 ± 0.002274   0.177452
-msd_2_cross     -0.056834 ± 0.000077   0.999789
-msd_3_cross      0.351561 ± 0.008135   0.976595
-msd_1_2         -0.203851 ± 0.000887   0.997807
-msd_1_3         -1.424095 ± 0.006024   0.994860
-msd_2_3          0.274629 ± 0.001144   0.995243
-total_eh         1.296666 ± 0.005284   0.996463
+msd_2_self       0.075888 ± 0.000009   0.999995
+msd_3_self       1.721330 ± 0.000630   0.999871
+msd_1_cross     -0.010091 ± 0.002274   0.113822
+msd_2_cross     -0.056834 ± 0.000077   0.999811
+msd_3_cross      0.351561 ± 0.008135   0.960746
+msd_1_2         -0.203851 ± 0.000887   0.998089
+msd_1_3         -1.424095 ± 0.006024   0.994930
+msd_2_3          0.274629 ± 0.001144   0.995262
+total_eh         1.296666 ± 0.005284   0.997632
 
 Linear regime identified between 18060.00 ps and 30000.00 ps, with 399 data points used for the fit.
 

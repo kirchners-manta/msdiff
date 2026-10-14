@@ -28,7 +28,7 @@ def print_results_to_stdout(
         Transport numbers to print
     """
 
-    print(f"\033[1mConductivity\033[0m")
+    print("\033[1mConductivity\033[0m")
     print(f"{'Contribution':<15} {'Sigma / S*m^-1':>20} {'R^2 fit':>10}")
     for i in range(len(results)):
         print(
@@ -38,7 +38,7 @@ def print_results_to_stdout(
         f"\nLinear regime identified between {results['t_start'].iloc[0]:.2f} ps and {results['t_end'].iloc[0]:.2f} ps, with {results['n_data'].iloc[0]} data points used for the fit.\n"
     )
 
-    print(f"\033[1mTransport Numbers\033[0m")
+    print("\033[1mTransport Numbers\033[0m")
     print(f"{'Species':<8} {'t_ideal':>15} {'t_real':>19}")
     for i in range(len(transport)):
         print(
